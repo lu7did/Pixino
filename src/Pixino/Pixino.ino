@@ -10,7 +10,9 @@
 //* Copyright 2022               Pedro LU7DZ  <lu7did@gmail.com>
 //* Copyright 2021  QDX Transceiver concept Hans Summers (G0UPL) QRP Labs
 //*----------------------------------------------------------------------------------------------------------------
-//* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+//* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use,
+//* copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //*----------------------------------------------------------------------------------------------------------------
 //*  Version modificada y castellanizada para la placa usdx_SD_V3, usdx_SD_V4 de EA2EHC.
 //*  Capacidades añadas para el aprendizaje y practica de CW (En proyecto y evolucion)
@@ -34,7 +36,7 @@
 //*------------------------------------------------------------------------------------------------------------------
 //*  "If I have seen further it is by standing on the sholders [sic] of Giants" Sir Isaac Newton (circa 1675)
 //*------------------------------------------------------------------------------------------------------------------
-#define PIXINO    1
+#define PIXINO    1          // Define las modificaciones que son específicas del Pixino
 
 #ifdef PIXINO
 #define VERSION   "1.00a"
@@ -124,9 +126,13 @@ String user_sent_cw = "";
 
 //FUSES = { .low = 0xFF, .high = 0xD6, .extended = 0xFD };   // Fuse settings should be set at programming (Arduino IDE > Tools > Burn bootloader)
 
+#ifdef PIXINO   //Ignora la version del IDE Arduino para PIXINO
+#else
 #if(ARDUINO < 10810)
    #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
 #endif
+#endif //PIXINO
+
 #if !(defined(ARDUINO_ARCH_AVR))
    #error "Unsupported architecture, select Arduino IDE > Tools > Board > Arduino AVR Boards > Arduino Uno."
 #endif
@@ -348,6 +354,7 @@ void encoder_setup()
   interrupts();
 }
 
+//*-------------------------------------------------------[I2C class]----------------------------------------------------------
 class I2C {
 public:
 #if(F_MCU > 20000000)
@@ -473,6 +480,10 @@ public:
 
 // /*
 I2C i2c;
+//*-------------------------------------------------------[End of I2C class creation]---------------------------------------------
+
+
+//*-------------------------------------------------------[Si5351 class]----------------------------------------------------------
 class SI5351 {
 public:
   volatile int32_t _fout;
@@ -526,26 +537,28 @@ public:
   { 
     #define _MSC  0x80000  //0x80000: 98% CPU load   0xFFFFF: 114% CPU load
     uint32_t msb128 = _msb128 + ((int64_t)(_div * (int32_t)df) * _MSC * 128) / fxtal;
-    //uint32_t msb128 = ((int64_t)(_div * (int32_t)df + _mod) * _MSC * 128) / fxtal; // @pre: 14<=_div<=144, |df|<=5000, _mod<=1800e3 (for fout<30M), _MSC=524288
 
+    
+    //uint32_t msb128 = ((int64_t)(_div * (int32_t)df + _mod) * _MSC * 128) / fxtal; // @pre: 14<=_div<=144, |df|<=5000, _mod<=1800e3 (for fout<30M), _MSC=524288
     //#define _MSC  (F_XTAL/128)   // MSC exact multiple of F_XTAL (and maximized to fit in max. span 1048575)
     //uint32_t msb128 = (_div * (int32_t)df + _mod);
-
     //#define _MSC  0xFFFFF  // Old algorithm 114% CPU load, shortcut for a fixed fxtal=27e6
     //register uint32_t xmsb = (_div * (_fout + (int32_t)df)) % fxtal;  // xmsb = msb * fxtal/(128 * _MSC);
     //uint32_t msb128 = xmsb * 5*(32/32) - (xmsb/32);  // msb128 = xmsb * 159/32, where 159/32 = 128 * 0xFFFFF / fxtal; fxtal=27e6
-
     //#define _MSC  (F_XTAL/128)  // 114% CPU load  perfect alignment
     //uint32_t msb128 = (_div * (_fout + (int32_t)df)) % fxtal;
 
+
     uint32_t msp1 = _msa128min512 + msb128 / _MSC;  // = 128 * _msa + msb128 / _MSC - 512;
     uint32_t msp2 = msb128 % _MSC;  // = msb128 - msb128/_MSC * _MSC;
+
+/* Dead Code
     //uint32_t msp1 = _msa128min512;  // = 128 * _msa + msb128 / _MSC - 512;  assuming msb128 < _MSC, so that msp1 is constant
     //uint32_t msp2 = msb128;  // = msb128 - msb128/_MSC * _MSC, assuming msb128 < _MSC
-
     //pll_regs[0] = BB1(msc);  // 3 regs are constant
     //pll_regs[1] = BB0(msc);
     //pll_regs[2] = BB2(msp1);
+*/
     pll_regs[3] = BB1(msp1);
     pll_regs[4] = BB0(msp1);
     pll_regs[5] = ((_MSC&0xF0000)>>(16-4))|BB2(msp2); // top nibble MUST be same as top nibble of _MSC !
@@ -681,7 +694,7 @@ public:
 
 };
 static SI5351 si5351;
-
+//*-------------------------------------------------------[End of Si5351 class creation]----------------------------------------------------------
 
 
 enum dsp_cap_t { ANALOG, DSP, SDR };
@@ -712,8 +725,11 @@ const int16_t _F_SAMP_TX = (F_MCU * 4810LL / 20000000);  // Actual ADC sample-ra
 #define MAX_DP  ((filt == 0) ? _UA : (filt == 3) ? _UA/4 : _UA/2)     //(_UA/2) // the occupied SSB bandwidth can be further reduced by restricting the maximum phase change (set MAX_DP to _UA/2).
 #define CARRIER_COMPLETELY_OFF_ON_LOW  1    // disable oscillator on low amplitudes, to prevent potential unwanted biasing/leakage through PA circuit
 #define MULTI_ADC  1  // multiple ADC conversions for more sensitive (+12dB) microphone input
+
+/* Dead code
 //#define TX_CLK0_CLK1  1   // use CLK0, CLK1 for TX (instead of CLK2), you may enable and use NTX pin for enabling the TX path (this is like RX pin, except that RX may also be used as attenuator)
 //#define QUAD  1       // invert TX signal for phase changes > 180
+*/
 
 inline int16_t arctan3(int16_t q, int16_t i)  // error ~ 0.8 degree
 { // source: [1] http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf
@@ -738,6 +754,7 @@ volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 
 volatile uint8_t quad = 0;
 
+//*---------------------------------------------[SSB Generation]---------------------------------------------------
 inline int16_t ssb(int16_t in)
 {
   static int16_t dc, z1;
@@ -764,8 +781,11 @@ inline int16_t ssb(int16_t in)
 #else
   if(vox) _vox(_amp > vox_thresh);
 #endif
+
+/* Dead code
   //_amp = (_amp > vox_thresh) ? _amp : 0;   // vox_thresh = 4 is a good setting
   //if(!(_amp > vox_thresh)) return 0;
+*/
 
   _amp = _amp << (drive);
   _amp = ((_amp > 255) || (drive == 8)) ? 255 : _amp; // clip or when drive=8 use max output
@@ -794,13 +814,16 @@ inline int16_t ssb(int16_t in)
   else
     return dp * (-_F_SAMP_TX / _UA);
 }
+//*------------------------------------------------------[end of SSB Generation]-------------------------------------------------------
 
+//*------------------------------------------------------[Audio Sampling and Processing]-----------------------------------------------
 #define MIC_ATTEN  0  // 0*6dB attenuation (note that the LSB bits are quite noisy)
 volatile int8_t mox = 0;
 volatile int8_t volume = 11;
 
 // This is the ADC ISR, issued with sample-rate via timer1 compb interrupt.
 // It performs in real-time the ADC sampling, calculation of SSB phase-differences, calculation of SI5351 frequency registers and send the registers to SI5351 over I2C.
+
 static int16_t _adc;
 void dsp_tx()
 { // jitter dependent things first
@@ -854,6 +877,8 @@ ADCSRA |= (1 << ADSC);  // causes RFI on QCX-SSB units (not on units with direct
   OCR1AL = (adc << (mox-1)) + 128;  // TX audio monitoring
 #endif
 }
+
+//*---------------------------------------------------[fin procesamiento audio]---------------------------------------------------------------------------
 
 volatile uint16_t acc;
 volatile uint32_t cw_offset;
@@ -941,9 +966,21 @@ uint8_t delayWithKeySense(uint32_t ms){
   return 0;
 }
 #ifdef CW_MESSAGE_EXT
+
+#ifdef PIXINO
+char cw_msg[6][48] = { "CQ CQ CQ DE LU7DZ LU7DZ PSE K", "UR RST 599 5NN", "OP IS PEC PEC HW?", "QTH BAIRES ARGENTINA", "73 TU E E", "LU7DZ" };
+#else
 char cw_msg[6][48] = { "CQ CQ CQ DE EA2EHC EA2EHC PSE K", "UR RST 599 5NN", "NAME IS PABLO PABLO HW?", "QTH SANTANDER SANTANDER", "73 TU E E", "EA2EHC" };
+#endif //PIXINO
+
+#else
+
+#ifdef PIXINO
+char cw_msg[1][48] = { "CQ CQ DE LU7DZ LU7DZ PSK K" };
 #else
 char cw_msg[1][48] = { "CQ CQ CQ DE EA2EHC EA2EHC PSK K" };
+#endif  //PIXINO
+
 #endif
 uint8_t cw_msg_interval = 5; // number of seconds CW message is repeated
 uint32_t cw_msg_event = 0;
@@ -1255,6 +1292,8 @@ inline int16_t process_nr_old2(int16_t ac)
 
 inline int16_t process_nr(int16_t in)
 { 
+
+/* Dead Code
 /*
   static int16_t avg;
   avg = EA(avg, abs(in), 64); // alpha=1/64=0.0156
@@ -1273,14 +1312,19 @@ param_c = avg;
   if(brs_avgsq > 1) inv_gain = brs_avgsq / (brs_avgsq - 1);  // = 1 / (1 - 1/(1 << (1*avg*avg)) );
   else inv_gain = 32768;*/
 
+
   static int16_t ea1;
   ea1 = EA(ea1, in, 1 << (nr-1) );
+
+/* Dead code
   //static int16_t ea2;
   //ea2 = EA(ea2, ea1, inv_gain);
+*/
 
   return ea1;
 }
-/*
+
+/* Dead code
 inline int16_t process_nr(int16_t in)
 {
   // Exponential moving average and variance (Lyons 13.36.2)
@@ -1293,7 +1337,8 @@ inline int16_t process_nr(int16_t in)
 //volatile uint8_t filt = 0;
 uint8_t prev_filt[] = { 0 , 4 }; // default filter for modes resp. CW, SSB
 
-/* basicdsp filter simulation:
+/* Dead code
+  basicdsp filter simulation:
   samplerate=7812
   za0=in
   p1=slider1*10
@@ -1362,7 +1407,8 @@ inline int16_t filt_var(int16_t za0)  //filters build with www.micromodeler.com
       case 3: zc0=(zb0+2*zb1+zb2)/4-(0*zc1+4*zc2)/16; break;       //0-1800Hz  elliptic
       //case 3: zc0=(zb0+zb1+zb2)/16-(-22*zc1+47*zc2)/64; break;   //0-1700Hz  elliptic with slope
     }
-   /*switch(filt){
+   /* Dead code
+    switch(filt){
       case 1: zb0=za0; break; //0-4000Hz (pass-through)
       case 2: zb0=(10*(za0+2*za1+za2)+16*zb1-17*zb2)/32; break;    //0-2500Hz  elliptic -60dB@3kHz
       case 3: zb0=(7*(za0+2*za1+za2)+48*zb1-18*zb2)/32; break;     //0-1700Hz  elliptic
