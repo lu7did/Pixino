@@ -42,7 +42,7 @@
 #define VERSION   "1.00a"
 #else
 #define VERSION   "1.02t"
-#endif  //endif PIXINO
+#endif  //PIXINO
 
 // Interruptores de configuracion: Quita o pon la doble barra para activar o desactivar diferentes caracteristicas.
 #define KEYER            1   // CW keyer
@@ -71,11 +71,20 @@
 //#define CW_FREQS_FISTS 1   // Frecuencia por defecto CW VERTICAL cuando cambiamos de banda
 
 // Definicion de los pines del Arduino
+#ifdef PIXINO
+#define LCD_D4  0
+#define LCD_D5  1
+#define LCD_D6  2
+#define LCD_D7  3
+#define LCD_EN  4
+#else
 #define LCD_D4  0         //PD0    (pin 2)
 #define LCD_D5  1         //PD1    (pin 3)
 #define LCD_D6  2         //PD2    (pin 4)
 #define LCD_D7  3         //PD3    (pin 5)
 #define LCD_EN  4         //PD4    (pin 6)
+#endif    //PIXINO
+
 #define FREQCNT 5         //PD5    (pin 11)
 #define ROT_A   6         //PD6    (pin 12)
 #define ROT_B   7         //PD7    (pin 13)
@@ -89,7 +98,13 @@
 #define AUDIO2  15        //PC1/A1 (pin 24)
 #define DVM     16        //PC2/A2 (pin 25)
 #define BUTTONS 17        //PC3/A3 (pin 26)
+
+#ifdef PIXINO
+#define LCD_RS  A4
+#else
 #define LCD_RS  18        //PC4    (pin 27)
+#endif //PIXINO
+
 #define SDA     18        //PC4    (pin 27)
 #define SCL     19        //PC5    (pin 28)
 //#define NTX     11        //PB3    (pin 17)  - experimental: LOW  on TX, used as PTT out to enable external PAs
@@ -325,7 +340,12 @@ public:
 #endif //CAT_EXT
 };
 
+#ifdef PIXINO
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(LCD_RS,LCD_EN,LCD_D4,LCD_D5,LCD_D6,LCD_D7);
+#else
 Display<LCD> lcd;     // highly-optimized LCD driver, OK for QCX supplied displays
+#endif //PIXINO
 
 volatile int8_t encoder_val = 0;
 volatile int8_t encoder_step = 0;
@@ -3312,8 +3332,14 @@ void setup()
 
 
   show_banner();
+  #ifdef PIXINO
+  lcd.setCursor(0,0); lcd.print("Pixino (c)LU7DZ");lcd_blanks();
+  #else
   lcd.setCursor(5, 0); lcd.print("EA2EHC"); lcd_blanks();
+  #endif //PIXINO
+  
   lcd.setCursor(5, 1); lcd.print(F(VERSION)); lcd_blanks();
+  
   delay(1500);
   drive = 4;  // Init settings
   cw_offset = tones[cw_tone];
