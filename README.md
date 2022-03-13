@@ -40,6 +40,101 @@ Instead of a crystal based signal generation DDS is be used.
 
 The rest of the code deals mostly with the user interface and operating features, among others:
 
+## Hardware prototype
+
+This is a snapshot of the current prototype used to develop and debug this project:
+
+![Alt Text](images/usdx.png "uSDX Original QCX-SSB")
+![Alt Text](images/Pixino.bmp "Pixino hardware prototype")
+
+
+# Chinese Pixie MODS
+
+A typical circuit for the kit might be:
+
+![Alt Text](docs/PixiePi_Schematics.jpg?raw=true "PixiePi Schematics")
+
+Some minor modifications are needed while building the Chinese DIY Pixie kit, other versions might vary.
+
+## Components not needed
+
+The following components needs not to be placed when building the kit
+
+```
+* D2 - Diode 1N4001
+* R6 - R 100K
+* C8 - C 100nF
+* W1 - R 47K (var)
+* D3 - Diode 1N4148
+* Y1 - Cristal 7.032 MHz
+```
+## Different connections (Recommended MODS)
+
+```
+* Connect Cx=100 nF on the same place than Y1 on the kit.
+* Connect negative side of D3 diode to the interface board PTT line
+* Cut trace from R5 to KEY socket, connect both keyer legs to the socket going into GPIO15 and GPIO13.
+* Assure all three boards (interface, Pixie and Raspberry Pi) share a common ground.
+* Extract +12V from the Pixie +12V socket, feed LM7805 with it, then feed the Raspberry Pi Zero board with it.
+```
+![Alt Text](docs/pixie_pcb.jpg?raw=true "PixiePi PCB mods")
+
+All additional interface circuitry might be constructed on a prototype perfboard or using the Manhattan
+technique.
+
+## Pixie Final PA heat sink
+
+Operating with a 12V supply the final transistor might become quite hot and indeed fail if the keydown period is long enough
+(as it might be with FT8 or WSPR, even for slow CW). A small heatsink is recommended.
+Space is very limited on typical kits but a small piece of aluminum might be enough, be aware not to short either L1 nor L3
+with it.
+
+The keyer transistor Q1 will benefit from a heat sink as well if long keying times are expected.
+
+A cooler can be activated using the GPIO24 line, feed the cooler not from the Raspberry Pi board but from the +5V regulator or
+external power supply if used.
+
+
+## Broadcast Interference (BCI)
+
+At some locations the Chinese DIY Pixie kit might be subject to heavy BCI, in order to minimize try to replace R3 from
+1K to 47-100 Ohms.
+
+## Increase power and other features
+
+An interesting set of low cost modifications to increase the power, improve efficiency and other enhancements to the original DIY Kit
+can be found at [link](http://vtenn.com/Blog/?p=1348).
+
+# Other alternatives
+
+Even if the Pixie schematic is used for the project the software could be used directly with other DIY or homebrew popular
+designs, among others:
+
+* [PY2OHH's Curumim](http://py2ohh.w2c.com.br/trx/curumim/curumim.htm)
+* [NorCal 49'er](http://www.norcalqrp.org/files/49er.pdf)
+* [Miss Mosquita](https://www.qrpproject.de/Media/pdf/Mosquita40Engl.pdf)
+* [Mosquito](http://www.qrp.cat/ea3ghs/mosquito.pdf)
+* [Jersey Fireball](http://www.njqrp.club/fireball40/rev_b/fb40b_manual.pdf)
+
+Lots of good QRPp projects can be found at [link](http://www.ncqrpp.org/) or SPRAT magazine [link](http://www.gqrp.com/sprat.htm).
+
+# NOT really to be seen as alternative to
+
+This project isn't a serious alternative to some excellent DIY Kits available in the market, which deliver tons of good features
+at reasonable cost. This project must be seen as a learning platform enabling a very cheap DIY kit with tons of features their
+intrisic limitations can not be extended to cover.
+In particular this kit is NOT a replacement nor an alternative to the following superb kits that I'm aware of:
+
+* QRP Lab's (Hans Summers) OCX series.
+* CRKits (Adam Rong's) D4D kit.
+* QRPGuys's DSB Digital Transceiver.
+* 4S QRP Group's Cricket 40.
+* ... and other similar projects ...
+
+For all of them do yourself a favor and buy a kit, assemble it and enjoy the experience.
+
+Not to mention other relatively higher scale setups such as the BitX, mcHF or minion SDR transceivers.
+
 ## DISCLAIMER
 
 This is a pure, non-for-profit, project being performed in the pure ham radio spirit of experimentation, learning and sharing.
