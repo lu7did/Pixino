@@ -80,7 +80,7 @@ The following components needs not to be placed when building the kit
 * Assure all three boards (interface, Pixie and Raspberry Pi) share a common ground.
 * Extract +12V from the Pixie +12V socket, feed LM7805 with it, then feed the Raspberry Pi Zero board with it.
 ```
-![Alt Text](docs/pixie_pcb.jpg?raw=true "PixiePi PCB mods")
+![Alt Text](images/pixie_pcb.jpg?raw=true "PixiePi PCB mods")
 
 All additional interface circuitry might be constructed on a prototype perfboard or using the Manhattan
 technique.
