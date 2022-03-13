@@ -128,7 +128,7 @@ at reasonable cost. This project must be seen as a learning platform enabling a 
 intrisic limitations can not be extended to cover.
 In particular this kit is NOT a replacement nor an alternative to the following superb kits that I'm aware of:
 
-* QRP Lab's (Hans Summers) OCX series.
+* QRP Lab's (Hans Summers) ANY product from QRP-Labs.
 * CRKits (Adam Rong's) D4D kit.
 * QRPGuys's DSB Digital Transceiver.
 * 4S QRP Group's Cricket 40.
