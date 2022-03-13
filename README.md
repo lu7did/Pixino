@@ -44,15 +44,18 @@ The rest of the code deals mostly with the user interface and operating features
 
 This is a snapshot of the current prototype used to develop and debug this project:
 
+The original design from Guido (PE1NNZ) based on the QCX design from Hans Summers (G0UPL) at QRP-Labs
 ![Alt Text](images/usdx.png "uSDX Original QCX-SSB")
-![Alt Text](images/Pixino.bmp "Pixino hardware prototype")
+
+Some small modifications to adapt the controller to operate with a Pixie design
+![Alt Text](images/pixino.bmp "Pixino hardware prototype")
 
 
 # Chinese Pixie MODS
 
 A typical circuit for the kit might be:
 
-![Alt Text](docs/PixiePi_Schematics.jpg?raw=true "PixiePi Schematics")
+![Alt Text](images/pixie.jpg?raw=true "PixiePi Schematics")
 
 Some minor modifications are needed while building the Chinese DIY Pixie kit, other versions might vary.
 
