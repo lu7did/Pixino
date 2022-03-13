@@ -3567,7 +3567,19 @@ void loop()
         if(encoder_val && event == PL){ event = PT; break; }
         wdt_reset();
       }  // Max. voltages at ADC3 for buttons L,R,E: 3.76V;4.55V;5V, thresholds are in center
+#ifdef PIXINO
+/*
+ * calibrate levels, BE (center), BL (left) and BR (right) are sensed over the same analog entry, therefore the voltages read
+ * defines which one is being pressed.
+ *        BL (left)     613   3.00V
+ *        BR (right)    853   4,16V
+ *        BE (tap)     1023   5.00V
+ */
+      event |= (v < (3.5 * 1024.0 / 5.0)) ? BL : (v < (4.5 * 1024.0 / 5.0)) ? BR : BE; // determine which button pressed based on threshold levels
+#else      
       event |= (v < (4.2 * 1024.0 / 5.0)) ? BL : (v < (4.8 * 1024.0 / 5.0)) ? BR : BE; // determine which button pressed based on threshold levels
+#endif //PIXINO
+      
     } else {  // hack: fast forward handling
       event = (event&0xf0) | ((encoder_val) ? PT : PLC/*PL*/);  // only alternate between push-long/turn when applicable
     }
