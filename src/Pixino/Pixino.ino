@@ -796,7 +796,12 @@ public:
     return data;
   }
   void powerDown(){
+    
+  #ifdef PIXINO
+  #else
     SendRegister(3, 0b11111111); // Disable all CLK outputs
+  #endif
+    
     SendRegister(24, 0b00000000); // Disable state: LOW state when disabled
     SendRegister(25, 0b00000000); // Disable state: LOW state when disabled
     for(int addr = 16; addr != 24; addr++) SendRegister(addr, 0b10000000);  // Conserve power when output is disabled
@@ -2534,7 +2539,11 @@ void switch_rxtx(uint8_t tx_enable){
     if(practice){
       digitalWrite(RX, LOW); // TX (disable RX)
       lcd.setCursor(15, 1); lcd.print('P');
+      #ifdef PIXINO
+      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN,CLK1_EN,CLK0_EN=0
+      #else
       si5351.SendRegister(SI_CLK_OE, 0b11111111); // CLK2_EN,CLK1_EN,CLK0_EN=0
+      #endif
       // Do not enable PWM (KEY_OUT), do not enble CLK2
     } else
     {
@@ -2595,8 +2604,11 @@ void switch_rxtx(uint8_t tx_enable){
 #endif  //TX_CLK0_CLK1
 #endif //QUAD
 
+#ifdef PIXINO
+      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
+#else      
       si5351.SendRegister(SI_CLK_OE, 0b11111100); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
-
+#endif
 #ifdef SEMI_QSK
       if((!semi_qsk_timeout) || (!semi_qsk))   // enable RX when no longer in semi-qsk phase; so RX and NTX/PTX outputs are switching only when in RX mode
 #endif //SEMI_QSK
