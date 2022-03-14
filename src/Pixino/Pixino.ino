@@ -53,7 +53,6 @@
 #define KEYER            1   // CW keyer
 #define CW_DECODER       1   // Decodificador CW
 #define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
-#define SWAP_ROTARY      1   // Cambia la direccion del encoder
 #define KEY_CLICK        1   // Reduce los clicks del manipulador en la forma de onda.
 #define SEMI_QSK         1   // En CW justo despues de manipular, mantiene la recepcion muda durante un corto periodo de tiempo. No hay recepcion entre caracteres en  TX CW
 #define RIT_ENABLE       1   // Se aplica un desplazamiento en RX respecto a TX
@@ -63,6 +62,11 @@
 #define CW_MESSAGE       1   // Mensaje de llamada CQ en CW. Se lanza haciendo click izuierdo en el menu 4.2
 #define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
 #define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
+
+
+#ifndef PIXINO
+#define SWAP_ROTARY      1   // Cambia la direccion del encoder
+#endif //PIXINO
 
 //#define TX_DELAY       1   // Añade una temporizacion a la transmision por si se usa un amplificador lineal externo conmutarlo primero mediante su entrada de rele.
 //#define TUNING_DIAL    1   // Escanea la frecuencia mediante pulsacion larga del pulsador central
@@ -730,7 +734,16 @@ public:
       ms(MS1,  fvcoa, fout, PLLA, 0, q, rdiv);
       ms(MS2,  fvcoa, fout, PLLA, 0, 0, rdiv);
       if(iqmsa != ((i-q)*((uint16_t)(fvcoa/fout))/90)){ iqmsa = (i-q)*((uint16_t)(fvcoa/fout))/90; reset(); }
+      
+#ifdef PIXINO
+      #ifdef DEBUG
+      oe(0b00000111);  // output enable CLK0,CLK1,CLK2
+      #else
+      oe(0b00000100);
+      #endif //DEBUG
+#else      
       oe(0b00000011);  // output enable CLK0, CLK1
+#endif //PIXINO
 
 #ifdef x
       ms(MSNA, fvcoa, fxtal);
@@ -743,7 +756,15 @@ public:
       ms(MS0,  fvcoa, fout, PLLA, 0, 0, rdiv);
       delayMicroseconds(F_MCU/16000000 * 1000000UL/F_DEV);  // Td = 1/(4 * Fdev) phase-shift   https://tj-lab.org/2020/08/27/si5351%e5%8d%98%e4%bd%93%e3%81%a73mhz%e4%bb%a5%e4%b8%8b%e3%81%ae%e7%9b%b4%e4%ba%a4%e4%bf%a1%e5%8f%b7%e3%82%92%e5%87%ba%e5%8a%9b%e3%81%99%e3%82%8b/
       ms(MS1,  fvcoa, fout, PLLA, 0, 0, rdiv);
+#ifdef PIXINO
+#ifdef DEBUG      
+      oe(0b00000111);  // output enable CLK0, CLK1 & CLK2 (Debug)
+#else
+      oe(0b00000100);  // output enable CLK2, turn off CLK0, CLK1
+#endif //DEBUG
+#else
       oe(0b00000011);  // output enable CLK0, CLK1
+#endif //PIXINO      
 #endif
 
       _fout = fout;  // cache
@@ -1877,7 +1898,7 @@ static int16_t ozi1, ozi2;
 inline int16_t sdr_rx_common_q(){
   ADMUX = admux[0]; ADCSRA |= (1 << ADSC); int16_t ac = ADC - 511;
   ozi1 = ocomb + ozi1;
-  OCR1AL = min(max(128 - (ozi2>>5) + 128, 0), 255); */
+  OCR1AL = min(max(128 - (ozi2>>5) + 128, 0), 255);
   return ac;
 }
 /*-----------------------------------*
@@ -2339,8 +2360,15 @@ uint16_t analogSampleMic()
 }
 
 volatile bool change = true;
+
+#ifdef PIXINO
+volatile int32_t freq = 7074000;
+static int32_t vfo[] = { 7074000, 7074000 };
+#else
 volatile int32_t freq = 7035000;
 static int32_t vfo[] = { 7035000, 14055000 };
+#endif //PIXINO
+
 static uint8_t vfomode[] = { USB, USB };
 enum vfo_t { VFOA=0, VFOB=1, SPLIT=2 };
 volatile uint8_t vfosel = VFOA;
