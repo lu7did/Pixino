@@ -95,7 +95,7 @@
 #define LCD_D6  2
 #define LCD_D7  3
 #define LCD_EN  4
-#define LCD_RS  A4
+//#define LCD_RS  A4
 
 #else
 
@@ -118,8 +118,15 @@
 #define DAH     12        //PB4    (pin 18)
 #define DIT     13        //PB5    (pin 19)
 #define AUDIO1  14        //PC0/A0 (pin 23)
+
+#ifdef PIXINO
+#define LCD_RS  15
+#define AUDIO2  16
+#else
 #define AUDIO2  15        //PC1/A1 (pin 24)
-#define DVM     16        //PC2/A2 (pin 25)
+#define DVM     16
+#endif
+
 #define BUTTONS 17        //PC3/A3 (pin 26)
 
 #define SDA     18        //PC4    (pin 27)
@@ -167,7 +174,7 @@ String user_sent_cw = "";
 #ifdef PIXINO   //Ignora la version del IDE Arduino para PIXINO
 #else
 #if(ARDUINO < 10810)
-   #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
+//   #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
 #endif
 #endif //PIXINO
 
@@ -3067,10 +3074,13 @@ void initPins(){
 
   //pinMode(DAH, INPUT_PULLUP); // Could this replace D4? But leaks noisy VCC into mic input!
 
+#ifdef PIXINO
+#else
   digitalWrite(AUDIO1, LOW);  // when used as output, help can mute RX leakage into AREF
   digitalWrite(AUDIO2, LOW);
   pinMode(AUDIO1, INPUT);
   pinMode(AUDIO2, INPUT);
+#endif
 
 #ifdef NTX
   digitalWrite(NTX, HIGH);
@@ -4089,9 +4099,13 @@ void loop()
 
             interrupts();
           }
+          
           digitalWrite(RX, !(att & 0x02)); // att bit 1 ON: attenuate -20dB by disabling RX line, switching Q5 (antenna input switch) into 100k resistence
+#ifdef PIXINO
+#else
           pinMode(AUDIO1, (att & 0x04) ? OUTPUT : INPUT); // att bit 2 ON: attenuate -40dB by terminating ADC inputs with 10R
           pinMode(AUDIO2, (att & 0x04) ? OUTPUT : INPUT);
+#endif
         }
         if(menu == SIFXTAL){
           change = true;
