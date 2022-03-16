@@ -39,17 +39,24 @@
 #define PIXINO    1          // Define las modificaciones que son específicas del Pixino (inclusión/exclusión)
 
 #ifdef PIXINO
+#undef  DEBUG
+#endif //PIXINO
+
+#ifdef PIXINO
 #define VERSION   "1.00a"
 #else
 #define VERSION   "1.02t"
 #endif  //PIXINO
 
 // Interruptores de configuracion: Quita o pon la doble barra para activar o desactivar diferentes caracteristicas.
-/*
-   Configuración maestra
-   Define las principales caracteristicas adicionales y su código asociado
-   al activar el #define se incluye el código y comentandolo se excluye
-*/
+/*====================================================================================================================*
+ *  Configuración maestra                                                                                             *
+ *  Define las principales caracteristicas adicionales y su código asociado                                           *
+ *  al activar el #define se incluye el código y comentandolo se excluye                                              *
+ *====================================================================================================================*/
+ /*--------------------------------*
+  * opciones habilitadas           *
+  *--------------------------------*/
 #define KEYER            1   // CW keyer
 #define CW_DECODER       1   // Decodificador CW
 #define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
@@ -62,16 +69,22 @@
 #define CW_MESSAGE       1   // Mensaje de llamada CQ en CW. Se lanza haciendo click izuierdo en el menu 4.2
 #define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
 #define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
+/*--------------------------------*
+ * opciones condicionales         *
+ *--------------------------------*/
+#ifndef PIXINO
 #define SWAP_ROTARY      1   // Cambia la direccion del encoder
-
-
+#endif
+/*--------------------------------*
+ * opciones no habilitadas        *
+ *--------------------------------*/
 //#define TX_DELAY       1   // Añade una temporizacion a la transmision por si se usa un amplificador lineal externo conmutarlo primero mediante su entrada de rele.
 //#define TUNING_DIAL    1   // Escanea la frecuencia mediante pulsacion larga del pulsador central
 //#define CW_LEARN       1   // Aprender y practiar CW metodo Koch, necesita revison, No activar.
 //#define CAT_STREAMING  1   // Soporte CAT extendido: audio streaming sobre CAT, una vez activado y selecionado mediante el CAT cmd, 7.812ksps 8-bit unsigned audio se envia mediante la  UART. El punto y como ";" es omitido en la trama de datos, y solo se envia para indicar el principio y final del CAT cmd.
 //#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
 //#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
-//#define CW_FREQS_FISTS    1 // Frecuencia por defecto CW VERTICAL cuando cambiamos de banda
+//#define CW_FREQS_FISTS 1   // Frecuencia por defecto CW VERTICAL cuando cambiamos de banda
 
 /*
   Fin de configuración maestra
@@ -82,15 +95,20 @@
 #define F_XTAL       25001180 // Ajuste fino de la frecuencia del cristal del SI5351 
 #define F_MCU        16000000 // Frecuencia del cristal del arduino ATMEGA328P
 
+
+/*====================================================================================================================*
+ *  Configuración Pinout de hardware                                                                                  *
+ *  Define las asignaciones lógicas a las lineas físicas del hardware                                                 *
+ *  al activar el #define se incluye el código y comentandolo se excluye                                              *
+ *====================================================================================================================*/
 /*
    Definición de pin de Arduino
 */
-
-#define LCD_D4  0         //PD0    (pin 2)
-#define LCD_D5  1         //PD1    (pin 3)
-#define LCD_D6  2         //PD2    (pin 4)
-#define LCD_D7  3         //PD3    (pin 5)
-#define LCD_EN  4         //PD4    (pin 6)
+#define LCD_D4   0         //PD0    (pin 2)
+#define LCD_D5   1         //PD1    (pin 3)
+#define LCD_D6   2         //PD2    (pin 4)
+#define LCD_D7   3         //PD3    (pin 5)
+#define LCD_EN   4         //PD4    (pin 6)
 #define LCD_RS  18        //PC4    (pin 27)
 #define FREQCNT  5         //PD5    (pin 11)
 #define ROT_A    6         //PD6    (pin 12)
@@ -111,8 +129,8 @@
 /*
   Código experimental para manejar PA (no utilizado en Pixino)
 */
-//#define NTX     11        //PB3    (pin 17)  - experimental: LOW  on TX, used as PTT out to enable external PAs
-//#define PTX     11        //PB3    (pin 17)  - experimental: HIGH on TX, used as PTT out to enable external PAs
+//#define NTX   11        //PB3    (pin 17)  - experimental: LOW  on TX, used as PTT out to enable external PAs
+//#define PTX   11        //PB3    (pin 17)  - experimental: HIGH on TX, used as PTT out to enable external PAs
 
 #ifdef SWAP_ROTARY
 #undef ROT_A
@@ -143,14 +161,15 @@ String user_sent_cw = "";
 #endif
 
 
-
-
 //FUSES = { .low = 0xFF, .high = 0xD6, .extended = 0xFD };   // Fuse settings should be set at programming (Arduino IDE > Tools > Burn bootloader)
 
 #ifdef PIXINO   //Ignora la version del IDE Arduino para PIXINO
+#if(ARDUINO < 10805)
+   #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.05 or later from https://www.arduino.cc/en/software"
+#endif
 #else
 #if(ARDUINO < 10810)
-//   #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
+   #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
 #endif
 #endif //PIXINO
 
@@ -183,9 +202,9 @@ uint8_t _digitalRead(uint8_t pin){  // reads pin or (via CAT) artificially overr
 #define _digitalRead(x) digitalRead(x)
 #endif //CAT_EXT
 
-/*-------------------------------------------------------------------------------------------------------------
-                                          KEYER Subsystem
----------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *           KEYER Subsystem                 *
+ *-------------------------------------------*/
 //#ifdef KEYER
 // Iambic Morse Code Keyer Sketch, Contribution by Uli, DL2DBG. Copyright (c) 2009 Steven T. Elliott Source: http://openqrp.org/?p=343,  Trimmed by Bill Bishop - wrb[at]wrbishop.com.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version. This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details: Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 
@@ -243,9 +262,9 @@ volatile uint8_t vox = 0;
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 
-/*----------------------------------------------------------------------------------------------------------------
-                                             LCD Subsystem
-------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *           LCD SubSystem                   *
+ *-------------------------------------------*/
 uint8_t backlight = 8;
 
 class LCD : public Print {  // inspired by: http://www.technoblogy.com/show?2BET
@@ -355,6 +374,8 @@ public:  // LCD1602 display in 4-bit mode, RS is pull-up and kept low when idle 
 template<class parent>class Display : public parent {  // This class spoofs display contents and cursor state
 public:
 
+//*--- Esta es la mitigación por la coexistencia entre CAT y LCD (LCD usa como pin de datos Rx0/Tx0)
+
 #ifdef CAT_EXT
   uint8_t x, y;
   bool curs;
@@ -368,19 +389,12 @@ public:
 #endif //CAT_EXT
 };
 
-//#ifdef PIXINO
-//
-//#include <LiquidCrystal.h>
-//LiquidCrystal lcd(LCD_RS,LCD_EN,LCD_D4,LCD_D5,LCD_D6,LCD_D7);
-//#else
 
 Display<LCD> lcd;     // highly-optimized LCD driver, OK for QCX supplied displays
 
-//#endif //PIXINO LCD definition using LiquidCrystal
-
-/*------------------------------------------------------------------------------------------------------------------
-                                       ENCODER SubSystem
---------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *         ENCODER Subsystem                 *
+ *-------------------------------------------*/
 volatile int8_t encoder_val = 0;
 volatile int8_t encoder_step = 0;
 static uint8_t last_state;
@@ -408,10 +422,9 @@ void encoder_setup()
   last_state = (_digitalRead(ROT_B) << 1) | _digitalRead(ROT_A);
   interrupts();
 }
-
-/*-------------------------------------------------------------------------------------------------------------------
-                                               I2C SubSystem
----------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *         I2C SubSystem                     *
+ *-------------------------------------------*/
 class I2C {
 public:
 
@@ -551,10 +564,9 @@ public:
 I2C i2c;
 //*-------------------------------------------------------[End of I2C class creation]---------------------------------------------
 
-
-/*-------------------------------------------------------------------------------------------------------------------
-                                                           Si5351 SubSystem
----------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *           Si5351                          *
+ *-------------------------------------------*/
 class SI5351 {
 public:
   volatile int32_t _fout;
@@ -781,7 +793,9 @@ static SI5351 si5351;
 /*--------------------------------------------------------------------------------------------------------------------
                                                    Digital Signal Processing SubSystem
 -------------------------------------------------------------------------------------------------------------------*/
-
+/*-------------------------------------------*
+ *             DSP SubSystem                 *
+ *-------------------------------------------*/
 enum dsp_cap_t { ANALOG, DSP, SDR };
 const uint8_t ssb_cap = 1;
 const uint8_t dsp_cap = SDR;
@@ -842,7 +856,9 @@ volatile uint8_t vox_thresh = (1 << 0); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 volatile uint8_t quad = 0;
 
-//*---------------------------------------------[SSB Generation]---------------------------------------------------
+/*-------------------------------------------*
+ *       SSB Generation                      *
+ *-------------------------------------------*/
 inline int16_t ssb(int16_t in)
 {
   static int16_t dc, z1;
@@ -909,10 +925,9 @@ inline int16_t ssb(int16_t in)
 }
 //*------------------------------------------------------[end of SSB Generation]-------------------------------------------------------
 
-/*-------------------------------------------------------------------------------------------------------------------
-                                                   SSB Generation
-                                                 Audio Sampling Subsystem
---------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *   Audio Sampling SubSystem                *
+ *-------------------------------------------*/
 #define MIC_ATTEN  0  // 0*6dB attenuation (note that the LSB bits are quite noisy)
 volatile int8_t mox = 0;
 volatile int8_t volume = 11;
@@ -984,9 +999,9 @@ void dsp_tx()
 
 //*---------------------------------------------------[fin procesamiento audio]---------------------------------------------------------------------------
 
-/*-----------------------------------------------------------------------------------------------------------------
-                                            CW Processing Sub-system
--------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *       CW Sub-System                       *
+ *-------------------------------------------*/
 volatile uint16_t acc;
 volatile uint32_t cw_offset;
 volatile uint8_t cw_tone = 1;
@@ -1007,10 +1022,9 @@ const uint8_t ramp[] PROGMEM = { 255, 254, 252, 249, 245, 239, 233, 226, 217, 20
 void dummy()
 {
 }
-
-/*-----------------------------------------------------------------------------------------------------------------
-                                          CW Generation Subsystem
-------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *      CW Generation SubSystem              *
+ *-------------------------------------------*/
 void dsp_tx_cw()
 { // jitter dependent things first
 
@@ -1027,10 +1041,9 @@ void dsp_tx_cw()
   process_minsky();
   OCR1AL = (p_sin >> (16 - volume)) + 128;
 }
-
-/*-----------------------------------------------------------------------------------------------------------------
-                                         AM Generation Subsystem
------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *        AM Generation Subsystem            *
+ *-------------------------------------------*/
 void dsp_tx_am()
 
 { // jitter dependent things first
@@ -1048,9 +1061,9 @@ void dsp_tx_am()
   in=max(0, min(255, (in + AM_BASE)));
   amp=in;// lut[in];
 }
-/*----------------------------------------------------------------------------------------------------------------
-                                                    FM Generation Subsystem
------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *         FM Generation SubSystem           *
+ *-------------------------------------------*/
 void dsp_tx_fm()
 { // jitter dependent things first
   ADCSRA |= (1 << ADSC);    // start next ADC conversion (trigger ADC interrupt if ADIE flag is set)
@@ -1062,10 +1075,9 @@ void dsp_tx_fm()
   int16_t df = in;
   si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
 }
-
-/*-----------------------------------------------------------------------------------------------------------------
-                                            CW MESSAGE Generation
--------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------*
+ *     CW Message Message SubSystem          *
+ *-------------------------------------------*/
 #define EA(y, x, one_over_alpha)  (y) = (y) + ((x) - (y)) / (one_over_alpha); // exponental averaging [Lyons 13.33.1]
 #define MLEA(y, x, L, M)  (y)  = (y) + ((((x) - (y)) >> (L)) - (((x) - (y)) >> (M))); // multiplierless exponental averaging [Lyons 13.33.1], with alpha=1/2^L - 1/2^M
 const char m2c[] PROGMEM = "~ ETIANMSURWDKGOHVF*L*PJBXCYZQ**54S3***2**+***J16=/***H*7*G*8*90************?_****\"**.****@***'**-********;!*)*****,****:****";
@@ -1138,9 +1150,9 @@ int cw_tx(char* msg){
 }
 #endif // CW_MESSAGE
 
-/*---------------------------------------------------------------------------------------------------------------
-                                             CW DECODER SubSystem
-----------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------*
+ *     CW Decoder SubSystem                                     *
+ *--------------------------------------------------------------*/
 volatile uint8_t menumode = 0;  // 0=not in menu, 1=selects menu item, 2=selects parameter value
 
 #ifdef CW_DECODER
@@ -1313,9 +1325,9 @@ void dec2()
 
 //*----------------------------------------------[End of CW Decoder]--------------------------------------------
 
-/*--------------------------------------------------------------------------------------------------------------
-                                                AGC & NB Management SubSystem
---------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------*
+ *     Signal processing AGC and Noise Reduction (NR            *
+ *--------------------------------------------------------------*/
 #define F_SAMP_PWM (78125/1)
 #define F_SAMP_RX 62500
 
@@ -1506,7 +1518,7 @@ uint8_t prev_filt[] = { 0 , 4 }; // default filter for modes resp. CW, SSB
   za2=za1
   za1=za0
   out=zc0/8
-*/
+--------------------------------------------------------*/
 
 inline int16_t filt_var(int16_t za0)  //filters build with www.micromodeler.com
 { 
@@ -1616,9 +1628,11 @@ inline int16_t _arctan3(int16_t q, int16_t i)
   r = (i < 0) ? _UA / 2 - r : r;                  // arctan(-z) = -arctan(z)
   return (q < 0) ? -r : r;                        // arctan(-z) = -arctan(z)
 }
+/*--------------------------------------------------------------*
+ *   Receiver Algorithms                                        *
+ *--------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------
-                                       Receiver Algorithms
   Pretty much not needed for Pixino since the receiver function is made by hardware using a Pixie board only the
   clock needs to be maintained but no DSP processing of the signal needs to be done
 ------------------------------------------------------------------------------------------------------------------*/
@@ -1677,8 +1691,6 @@ inline int16_t slow_dsp(int16_t ac)
   return ac;
 
 }
-
-
 
 volatile uint8_t cat_streaming = 0;
 volatile uint8_t _cat_streaming = 0;
@@ -2127,10 +2139,9 @@ void sdr_rx()
 }
 
 #endif //SIMPLE_RX
-
-/*---------------------------------------------------------------------------------------------------------------
-                                          Timer management SubSystem
-----------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------*
+ *    Timer Management Sub-System                               *
+ *--------------------------------------------------------------*/
 ISR(TIMER2_COMPA_vect)  // Timer2 COMPA interrupt
 {
   func_ptr();
@@ -2208,14 +2219,18 @@ void timer2_stop()
   TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
   delay(1);  // wait until potential in-flight interrupts are finished
 }
-
-/*-------------------------------------------------------------------------------------------------------------
-                              Radio specific implementation
-// Below a radio-specific implementation based on the above components (seperation of concerns)
-//
-// Feel free to replace it with your own custom radio implementation :-)
----------------------------------------------------------------------------------------------------------------*/
-
+/*=============================================================================================================*
+ *                             Radio specific implementation
+ * Below a radio-specific implementation based on the above components (seperation of concerns)
+ * Feel free to replace it with your own custom radio implementation :-)
+ *
+ * Pixino
+ * The receiver is a direct conversion receiver provided by the Pixie board, the firmware needs only to provide
+ * a LO signal at the start of the baseband (USB) during reception.
+ * On transmission the new modulation scheme needs to be deployed where the incoming audio signal is processed
+ * large chunks of code will be disabled in order to reduce memory requirements from code that for the Pixino
+ * implementation shall become dead.
+ *=============================================================================================================*/
 void inline lcd_blanks(){ lcd.print(F("         ")); }
 
 #define N_FONTS  8
@@ -2285,7 +2300,10 @@ const byte fonts[N_FONTS][8] PROGMEM = {
   0b00000,
   0b00000 }
 };
-
+/*----------------------------------------------------------------*
+ * analogSafeRead                                                 *                       
+ * process the MIC input without processing the audio from the MIC*
+ *----------------------------------------------------------------*/
 int analogSafeRead(uint8_t pin, bool ref1v1 = false)
 {  // performs classical analogRead with default Arduino sample-rate and analog reference setting; restores previous settings
 
@@ -2306,7 +2324,11 @@ int analogSafeRead(uint8_t pin, bool ref1v1 = false)
   return val;
 }
 
-
+/*----------------------------------------------------------------*
+ * analogSampleMic                                                *                       
+ * process the MIC input and returns a 16 bits word with the ADC  *
+ * result.                                                        *
+ *----------------------------------------------------------------*/
 uint16_t analogSampleMic()
 {
   uint16_t adc;
@@ -2328,6 +2350,9 @@ uint16_t analogSampleMic()
 
 volatile bool change = true;
 
+/*----------------------------------------------------------------*
+ * VFO definition for PIXINO (a 40m board)                        *                       
+ *----------------------------------------------------------------*/
 #ifdef PIXINO
 volatile int32_t freq = 7074000;
 static int32_t vfo[] = { 7074000, 7074000 };
@@ -2341,6 +2366,10 @@ enum vfo_t { VFOA=0, VFOB=1, SPLIT=2 };
 volatile uint8_t vfosel = VFOA;
 volatile int16_t rit = 0;
 
+/*--------------------------------------------------------------------*
+ * S-Meter evaluation   (NOT USED FOR PIXINO)                         *
+ *--------------------------------------------------------------------*/
+ 
 // We measure the average amplitude of the signal (see slow_dsp()) but the S-meter should be based on RMS value.
 // So we multiply by 0.707/0.639 in an attempt to roughly compensate, although that only really works if the input
 // is a sine wave
@@ -2389,6 +2418,10 @@ float smeter(float ref = 0)
   return dbm;
 }
 
+/*---------------------------------------------------------------------*
+ * start_rx()                                                          *
+ * starts receiver                                                     *
+ *---------------------------------------------------------------------*/
 void start_rx()
 {
   _init = 1;
@@ -2423,6 +2456,10 @@ uint8_t txdelay = 0;
 uint8_t semi_qsk = false;
 uint32_t semi_qsk_timeout = 0;
 
+/*---------------------------------------------------------------------*
+ * switch_rxtx()                                                       *
+ * switch between transmission and reception and viceversa             *
+ *---------------------------------------------------------------------*/
 void switch_rxtx(uint8_t tx_enable){
 
   TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
@@ -2595,9 +2632,9 @@ void switch_rxtx(uint8_t tx_enable){
 
 //-------------------------------------------[End of master switch RxTx]------------------------------------------
 
-/*----------------------------------------------------------------------------------------------------------------
-                                    Band && Tunning management Subsystem
------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------*
+ * Band && tunning management subsystem                                *
+ *---------------------------------------------------------------------*/
 uint8_t rx_ph_q = 90;
 uint8_t prev_bandval = 3;
 uint8_t bandval = 3;
@@ -2698,9 +2735,9 @@ void powerDown()
   do { wdt_enable(WDTO_15MS); for(;;); } while(0);  // soft reset by trigger watchdog timeout
 }
 
-/*-----------------------------------------------------------------------------------------------------------------
-                                              GUI Management
-------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------*
+ * GUI Management SubSystem                                            *
+ *---------------------------------------------------------------------*/
 void show_banner(){
   lcd.setCursor(0, 0);
   lcd_blanks(); lcd_blanks();
@@ -2859,17 +2896,12 @@ static uint32_t save_event_time = 0;
 static uint8_t vox_tx = 0;
 static uint8_t vox_sample = 0;
 static uint16_t vox_adc = 0;
-
 static uint8_t pwm_min = 0;    // PWM value for which PA reaches its minimum: 29 when C31 installed;   0 when C31 removed;   0 for biasing BS170 directly
-
 static uint8_t pwm_max = 128;  // PWM value for which PA reaches its maximum:                                              128 for biasing BS170 directly
-
-
 const char* offon_label[2] = {"OFF", "ON"};
 
 #if(F_MCU > 16000000)
 const char* filt_label[N_FILT+1] = { "Full", "3000", "2400", "1800", "500", "200", "100", "50" };
-
 #else
 const char* filt_label[N_FILT+1] = { "Full", "2400", "2000", "1500", "500", "200", "100", "50" };
 #endif
@@ -3432,10 +3464,10 @@ void build_lut()
     //lut[i] = min(pwm_max, (float)106*log(i) + pwm_min);  // compressed microphone output: drive=0, pwm_min=115, pwm_max=220
 }
 
-/*------------------------------------------*
- * CW Learning sub-system                   *
- *------------------------------------------*/
-
+/*---------------------------------------*
+ * CW Learning SubSystem                 *
+ * (not for Pixino)                      *
+ *---------------------------------------*/
 #ifdef CW_LEARN
 void practice_cw()
 {
@@ -3498,9 +3530,9 @@ void learn_cw_koch()
 
 }    */  
 #endif
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
-//                                             SETUP 
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ *                                             SETUP                                                               *
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void setup()
 {
   digitalWrite(KEY_OUT, LOW);  // for safety: to prevent exploding PA MOSFETs, in case there was something still biasing them.
@@ -3530,7 +3562,6 @@ void setup()
     pgm_cache_item(fonts[i], 8);
     lcd.createChar(0x01 + i, /*fonts[i]*/_item);
   }
-
 
   show_banner();
 
@@ -3600,9 +3631,9 @@ void setup()
 }
 
 static int32_t _step = 0;
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
-//                                             LOOP 
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ *                                             LOOP                                                                *
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void loop()
 {
 
@@ -3737,7 +3768,6 @@ void loop()
 
   } else {
 #endif //KEYER
-
 
   uint8_t pin = ((mode == CW) && (keyer_swap)) ? DAH : DIT;
   if(!vox_tx)  //  ONLY if VOX not active, then check DIT/DAH (fix for VOX to prevent RFI feedback through EMI on DIT or DAH line)
