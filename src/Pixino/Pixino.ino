@@ -62,11 +62,8 @@
 #define CW_MESSAGE       1   // Mensaje de llamada CQ en CW. Se lanza haciendo click izuierdo en el menu 4.2
 #define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
 #define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
-
-
-#ifndef PIXINO
 #define SWAP_ROTARY      1   // Cambia la direccion del encoder
-#endif //PIXINO
+
 
 //#define TX_DELAY       1   // Añade una temporizacion a la transmision por si se usa un amplificador lineal externo conmutarlo primero mediante su entrada de rele.
 //#define TUNING_DIAL    1   // Escanea la frecuencia mediante pulsacion larga del pulsador central
@@ -88,16 +85,6 @@
 /*
    Definición de pin de Arduino
 */
-#ifdef PIXINO   //Definiciones del visor standard LCD 16x2
-
-#define LCD_D4  0
-#define LCD_D5  1
-#define LCD_D6  2
-#define LCD_D7  3
-#define LCD_EN  4
-//#define LCD_RS  A4
-
-#else
 
 #define LCD_D4  0         //PD0    (pin 2)
 #define LCD_D5  1         //PD1    (pin 3)
@@ -105,9 +92,6 @@
 #define LCD_D7  3         //PD3    (pin 5)
 #define LCD_EN  4         //PD4    (pin 6)
 #define LCD_RS  18        //PC4    (pin 27)
-
-#endif    //PIXINO
-
 #define FREQCNT  5         //PD5    (pin 11)
 #define ROT_A    6         //PD6    (pin 12)
 #define ROT_B    7         //PD7    (pin 13)
@@ -118,17 +102,9 @@
 #define DAH     12        //PB4    (pin 18)
 #define DIT     13        //PB5    (pin 19)
 #define AUDIO1  14        //PC0/A0 (pin 23)
-
-#ifdef PIXINO
-#define LCD_RS  15
-#define AUDIO2  16
-#else
 #define AUDIO2  15        //PC1/A1 (pin 24)
 #define DVM     16
-#endif
-
 #define BUTTONS 17        //PC3/A3 (pin 26)
-
 #define SDA     18        //PC4    (pin 27)
 #define SCL     19        //PC5    (pin 28)
 
@@ -392,15 +368,15 @@ public:
 #endif //CAT_EXT
 };
 
-#ifdef PIXINO
+//#ifdef PIXINO
+//
+//#include <LiquidCrystal.h>
+//LiquidCrystal lcd(LCD_RS,LCD_EN,LCD_D4,LCD_D5,LCD_D6,LCD_D7);
+//#else
 
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(LCD_RS,LCD_EN,LCD_D4,LCD_D5,LCD_D6,LCD_D7);
-
-#else
 Display<LCD> lcd;     // highly-optimized LCD driver, OK for QCX supplied displays
 
-#endif //PIXINO LCD definition using LiquidCrystal
+//#endif //PIXINO LCD definition using LiquidCrystal
 
 /*------------------------------------------------------------------------------------------------------------------
                                        ENCODER SubSystem
@@ -523,11 +499,9 @@ public:
     uint16_t i = 60000;
     for(;(!I2C_SCL_GET()) && i; i--);  // wait util slave release SCL to HIGH (meaning data valid), or timeout at 3ms
 
-#ifdef PIXINO
 #ifdef DEBUG    
     if(!i){ lcd.setCursor(0, 1); lcd.print(F("E07 I2C timeout")); }
 #endif 
-#endif
 
     uint8_t data = I2C_SDA_GET();
     I2C_SCL_LO();
@@ -742,15 +716,7 @@ public:
       ms(MS2,  fvcoa, fout, PLLA, 0, 0, rdiv);
       if(iqmsa != ((i-q)*((uint16_t)(fvcoa/fout))/90)){ iqmsa = (i-q)*((uint16_t)(fvcoa/fout))/90; reset(); }
       
-#ifdef PIXINO
-      #ifdef DEBUG
-      oe(0b00000111);  // output enable CLK0,CLK1,CLK2
-      #else
-      oe(0b00000100);
-      #endif //DEBUG
-#else      
       oe(0b00000011);  // output enable CLK0, CLK1
-#endif //PIXINO
 
 #ifdef x
       ms(MSNA, fvcoa, fxtal);
@@ -763,15 +729,8 @@ public:
       ms(MS0,  fvcoa, fout, PLLA, 0, 0, rdiv);
       delayMicroseconds(F_MCU/16000000 * 1000000UL/F_DEV);  // Td = 1/(4 * Fdev) phase-shift   https://tj-lab.org/2020/08/27/si5351%e5%8d%98%e4%bd%93%e3%81%a73mhz%e4%bb%a5%e4%b8%8b%e3%81%ae%e7%9b%b4%e4%ba%a4%e4%bf%a1%e5%8f%b7%e3%82%92%e5%87%ba%e5%8a%9b%e3%81%99%e3%82%8b/
       ms(MS1,  fvcoa, fout, PLLA, 0, 0, rdiv);
-#ifdef PIXINO
-#ifdef DEBUG      
-      oe(0b00000111);  // output enable CLK0, CLK1 & CLK2 (Debug)
-#else
-      oe(0b00000100);  // output enable CLK2, turn off CLK0, CLK1
-#endif //DEBUG
-#else
+
       oe(0b00000011);  // output enable CLK0, CLK1
-#endif //PIXINO      
 #endif
 
       _fout = fout;  // cache
@@ -804,11 +763,7 @@ public:
   }
   void powerDown(){
     
-  #ifdef PIXINO
-  #else
-    SendRegister(3, 0b11111111); // Disable all CLK outputs
-  #endif
-    
+    SendRegister(3, 0b11111111); // Disable all CLK outputs  
     SendRegister(24, 0b00000000); // Disable state: LOW state when disabled
     SendRegister(25, 0b00000000); // Disable state: LOW state when disabled
     for(int addr = 16; addr != 24; addr++) SendRegister(addr, 0b10000000);  // Conserve power when output is disabled
@@ -2546,11 +2501,7 @@ void switch_rxtx(uint8_t tx_enable){
     if(practice){
       digitalWrite(RX, LOW); // TX (disable RX)
       lcd.setCursor(15, 1); lcd.print('P');
-      #ifdef PIXINO
-      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN,CLK1_EN,CLK0_EN=0
-      #else
       si5351.SendRegister(SI_CLK_OE, 0b11111111); // CLK2_EN,CLK1_EN,CLK0_EN=0
-      #endif
       // Do not enable PWM (KEY_OUT), do not enble CLK2
     } else
     {
@@ -2611,11 +2562,8 @@ void switch_rxtx(uint8_t tx_enable){
 #endif  //TX_CLK0_CLK1
 #endif //QUAD
 
-#ifdef PIXINO
-      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
-#else      
       si5351.SendRegister(SI_CLK_OE, 0b11111100); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
-#endif
+
 #ifdef SEMI_QSK
       if((!semi_qsk_timeout) || (!semi_qsk))   // enable RX when no longer in semi-qsk phase; so RX and NTX/PTX outputs are switching only when in RX mode
 #endif //SEMI_QSK
@@ -3074,13 +3022,10 @@ void initPins(){
 
   //pinMode(DAH, INPUT_PULLUP); // Could this replace D4? But leaks noisy VCC into mic input!
 
-#ifdef PIXINO
-#else
   digitalWrite(AUDIO1, LOW);  // when used as output, help can mute RX leakage into AREF
   digitalWrite(AUDIO2, LOW);
   pinMode(AUDIO1, INPUT);
   pinMode(AUDIO2, INPUT);
-#endif
 
 #ifdef NTX
   digitalWrite(NTX, HIGH);
@@ -4101,11 +4046,8 @@ void loop()
           }
           
           digitalWrite(RX, !(att & 0x02)); // att bit 1 ON: attenuate -20dB by disabling RX line, switching Q5 (antenna input switch) into 100k resistence
-#ifdef PIXINO
-#else
           pinMode(AUDIO1, (att & 0x04) ? OUTPUT : INPUT); // att bit 2 ON: attenuate -40dB by terminating ADC inputs with 10R
           pinMode(AUDIO2, (att & 0x04) ? OUTPUT : INPUT);
-#endif
         }
         if(menu == SIFXTAL){
           change = true;
