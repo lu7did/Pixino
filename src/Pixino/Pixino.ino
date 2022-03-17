@@ -15,7 +15,7 @@
 //* copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //*----------------------------------------------------------------------------------------------------------------
 //*  Version modificada y castellanizada para la placa usdx_SD_V3, usdx_SD_V4 de EA2EHC.
-//*  Capacidades añadas para el aprendizaje y practica de CW (En proyecto y evolucion)
+//*  Capacidades añadidas para el aprendizaje y practica de CW (En proyecto y evolucion)
 //* -- Especial para el Grupo Tortugas --
 //*----------------------------------------------------------------------------------------------------------------
 //*  Versión modificada para adaptar a la placa experimental Pixino, cuyas principales caracteristicas son
@@ -149,7 +149,7 @@ char letra;
 int GROUP_NUM = 1;       // tren de caracteres que se mandan al estudiante cada vez de uno en uno, de dos en dos ...
 int GROUP_DLY = 30;      // tiempo entre caracteres enviados
 int KOCH_NUM = 5;        // Numero de caracteres distintos que se mandan k, m, r, s , u ...
-int KOCH_SKIP = 0;      // caracteres que no se envian: 1 no se envia k, 2 no se envia m ...
+int KOCH_SKIP = 0;       // caracteres que no se envian: 1 no se envia k, 2 no se envia m ...
 int learn_mode = 0;
 byte loop1 = 0;
 byte kn = 0;
@@ -1628,14 +1628,12 @@ inline int16_t _arctan3(int16_t q, int16_t i)
   r = (i < 0) ? _UA / 2 - r : r;                  // arctan(-z) = -arctan(z)
   return (q < 0) ? -r : r;                        // arctan(-z) = -arctan(z)
 }
-/*--------------------------------------------------------------*
- *   Receiver Algorithms                                        *
- *--------------------------------------------------------------*/
+*----------------------------------------------------------------------------------------------------------------*
+ * Receiver algorithms                                                                                            *
+ * Pretty much not needed for Pixino since the receiver function is made by hardware using a Pixie board only the *
+ * clock needs to be maintained but no DSP processing of the signal needs to be done                              *
+ *----------------------------------------------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------------------------------------------
-  Pretty much not needed for Pixino since the receiver function is made by hardware using a Pixie board only the
-  clock needs to be maintained but no DSP processing of the signal needs to be done
-------------------------------------------------------------------------------------------------------------------*/
 static uint32_t absavg256 = 0;
 volatile uint32_t _absavg256 = 0;
 volatile int16_t i, q;
