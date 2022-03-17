@@ -1628,7 +1628,7 @@ inline int16_t _arctan3(int16_t q, int16_t i)
   r = (i < 0) ? _UA / 2 - r : r;                  // arctan(-z) = -arctan(z)
   return (q < 0) ? -r : r;                        // arctan(-z) = -arctan(z)
 }
-*----------------------------------------------------------------------------------------------------------------*
+/*----------------------------------------------------------------------------------------------------------------*
  * Receiver algorithms                                                                                            *
  * Pretty much not needed for Pixino since the receiver function is made by hardware using a Pixie board only the *
  * clock needs to be maintained but no DSP processing of the signal needs to be done                              *
