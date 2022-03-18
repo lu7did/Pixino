@@ -805,6 +805,15 @@ volatile uint16_t numSamples = 0;
 volatile uint8_t tx = 0;
 volatile uint8_t filt = 0;
 
+/*---------------------------------------------*
+ * Control the activation of the fast quickQDX *
+ * frequency determination mode                *
+ *---------------------------------------------*/
+#ifdef PIXINO
+volatile bool quickQDX = false;
+volatile bool pixino   = true;
+#endif //PIXINO
+
 inline void _vox(bool trigger)
 {
   if(trigger){
@@ -825,10 +834,18 @@ const int16_t _F_SAMP_TX = (F_MCU * 4810LL / 20000000);  // Actual ADC sample-ra
 #define _UA  (_F_SAMP_TX)      //360  // unit angle; integer representation of one full circle turn or 2pi radials or 360 degrees, should be a integer divider of F_SAMP_TX and maximized to have higest precision
 #define MAX_DP  ((filt == 0) ? _UA : (filt == 3) ? _UA/4 : _UA/2)     //(_UA/2) // the occupied SSB bandwidth can be further reduced by restricting the maximum phase change (set MAX_DP to _UA/2).
 #define CARRIER_COMPLETELY_OFF_ON_LOW  1    // disable oscillator on low amplitudes, to prevent potential unwanted biasing/leakage through PA circuit
-#define MULTI_ADC  1  // multiple ADC conversions for more sensitive (+12dB) microphone input
+
+/*--------------------------------------------------------*
+ *  If PIXINO the max number of samples should be obtained*
+ *--------------------------------------------------------*/
+#ifdef PIXINO
+
+#else
+#define MULTI_ADC  1         // multiple ADC conversions for more sensitive (+12dB) microphone input
+#endif //PIXINO
 
 //#define TX_CLK0_CLK1  1   // use CLK0, CLK1 for TX (instead of CLK2), you may enable and use NTX pin for enabling the TX path (this is like RX pin, except that RX may also be used as attenuator)
-//#define QUAD  1       // invert TX signal for phase changes > 180
+//#define QUAD  1           // invert TX signal for phase changes > 180
 
 inline int16_t arctan3(int16_t q, int16_t i)  // error ~ 0.8 degree
 { // source: [1] http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf
@@ -855,6 +872,15 @@ volatile uint8_t amp;
 volatile uint8_t vox_thresh = (1 << 0); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 volatile uint8_t quad = 0;
+
+/*-------------------------------------------*
+ *       Quick Algorithm                     *
+ *-------------------------------------------*/
+inline int16_t quick(int16_t in)
+{
+
+
+}
 
 /*-------------------------------------------*
  *       SSB Generation                      *
@@ -941,6 +967,7 @@ void dsp_tx()
 { // jitter dependent things first
 
 #ifdef MULTI_ADC  // SSB with multiple ADC conversions:
+
   int16_t adc;                         // current ADC sample 10-bits analog input, NOTE: first ADCL, then ADCH
   adc = ADC;
   ADCSRA |= (1 << ADSC);
@@ -948,53 +975,87 @@ void dsp_tx()
   si5351.SendPLLRegisterBulk();       // submit frequency registers to SI5351 over 731kbit/s I2C (transfer takes 64/731 = 88us, then PLL-loopfilter probably needs 50us to stabalize)
 
 #ifdef QUAD
-
 #ifdef TX_CLK0_CLK1
   si5351.SendRegister(16, (quad) ? 0x1f : 0x0f);  // Invert/non-invert CLK0 in case of a huge phase-change
   si5351.SendRegister(17, (quad) ? 0x1f : 0x0f);  // Invert/non-invert CLK1 in case of a huge phase-change
 #else
   si5351.SendRegister(18, (quad) ? 0x1f : 0x0f);  // Invert/non-invert CLK2 in case of a huge phase-change
-#endif
-
+#endif  /TX_CLK0_CLK1
 #endif //QUAD
-  OCR1BL = amp;                      // submit amplitude to PWM register (takes about 1/32125 = 31us+/-31us to propagate) -> amplitude-phase-alignment error is about 30-50us
-  adc += ADC;
-  ADCSRA |= (1 << ADSC);  // causes RFI on QCX-SSB units (not on units with direct biasing); ENABLE this line when using direct biasing!!
+
+  OCR1BL = amp;                        // submit amplitude to PWM register (takes about 1/32125 = 31us+/-31us to propagate) -> amplitude-phase-alignment error is about 30-50us
+  adc += ADC;                          // 
+  ADCSRA |= (1 << ADSC);               // causes RFI on QCX-SSB units (not on units with direct biasing); ENABLE this line when using direct biasing!!
+
+
+/*--------------------------------*
+ * Extract delta frequency from   *
+ * sample                         *
+ *--------------------------------*/
   int16_t df = ssb(_adc >> MIC_ATTEN); // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
+
   adc += ADC;
   ADCSRA |= (1 << ADSC);
+
+/*--------------------------------*
+ * Changes frequency based on df  *
+ *--------------------------------*/
+
   si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
   adc += ADC;
   ADCSRA |= (1 << ADSC);
+
   //_adc = (adc/4 - 512);
 
 #define AF_BIAS   32
+
   _adc = (adc/4 - (512 - AF_BIAS));        // now make sure that we keep a postive bias offset (to prevent the phase swapping 180 degrees and potentially causing negative feedback (RFI)
+
 #else  // SSB with single ADC conversion:
+
   ADCSRA |= (1 << ADSC);    // start next ADC conversion (trigger ADC interrupt if ADIE flag is set)
   //OCR1BL = amp;                        // submit amplitude to PWM register (actually this is done in advance (about 140us) of phase-change, so that phase-delays in key-shaping circuit filter can settle)
   si5351.SendPLLRegisterBulk();       // submit frequency registers to SI5351 over 731kbit/s I2C (transfer takes 64/731 = 88us, then PLL-loopfilter probably needs 50us to stabalize)
   OCR1BL = amp;                        // submit amplitude to PWM register (takes about 1/32125 = 31us+/-31us to propagate) -> amplitude-phase-alignment error is about 30-50us
   int16_t adc = ADC - 512; // current ADC sample 10-bits analog input, NOTE: first ADCL, then ADCH
+
+/*---------------------------------*
+ * Compute df based on DSP for I/Q *
+ * and change the df based on that *
+ *---------------------------------*/
+
+/*----- For Pixino
+  #undef MULTI_ADC or #define MULTI_ADC 0
+  #quickQDX=true;
+  -----*/
+
+  if (pixino && quickQDX) {
+
+  int16_t df = quick(adc >> MIC_ATEN); // convert analog input into phase shifts using the QDX algorithm approximation
+
+  } else { 
+
   int16_t df = ssb(adc >> MIC_ATTEN);  // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
+  }
+
   si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
-#endif
+  
+
+#endif //MULTI_ADC
 
 #ifdef CARRIER_COMPLETELY_OFF_ON_LOW
   if(tx == 1){ OCR1BL = 0; si5351.SendRegister(SI_CLK_OE, 0b11111111); }   // disable carrier
-
 #ifdef TX_CLK0_CLK1
   if(tx == 255){ si5351.SendRegister(SI_CLK_OE, 0b11111100); } // enable carrier
 #else //TX_CLK2
   if(tx == 255){ si5351.SendRegister(SI_CLK_OE, 0b11111011); } // enable carrier
 #endif //TX_CLK0_CLK1
-
-#endif
+#endif //CARRIER_COMPLETELY_OFF_ON_LOW
 
 #ifdef MOX_ENABLE
   if(!mox) return;
   OCR1AL = (adc << (mox-1)) + 128;  // TX audio monitoring
-#endif
+#endif //MOX_ENABLE
 }
 
 //*---------------------------------------------------[fin procesamiento audio]---------------------------------------------------------------------------

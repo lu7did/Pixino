@@ -20,6 +20,7 @@ Initial project setup for HF Arduino controlled Pixie transceiver:
 *     Operates 7.0-7.3 MHz
 *     Largely inspired on Guido (PE1NNZ) with QCX-SSB.
 *     Largely based on my own projects Pi4D/PixiePi
+*     Operates with both the standard QCX-SSB and QDX algorithm
 
 # Background
 
