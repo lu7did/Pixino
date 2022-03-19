@@ -43,6 +43,7 @@
 #ifdef PIXINO
 #undef  DEBUG
 #define NORX      1          //Skip all code related to Receiver
+//#define NOGUI     1
 #define SIMPLE_RX 1          //Forces simpler Rx (which will be skipped)
 #endif //PIXINO
 
@@ -3069,9 +3070,10 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   if(id == ALL) for(id = 1; id != N_ALL_PARAMS+1; id++) paramAction(action, id);  // for all parameters
   
   switch(id){    // Visible parameters
-    case VOLUME:  paramAction(action, volume, 0x11, F("Volumen"), NULL, -1, 16, false); break;
+    
+    case VOLUME:  paramAction(action, volume, 0x11, F("Volumen"), NULL, -1, 16, false); break;    
     case MODE:    paramAction(action, mode, 0x12, F("Modo"), mode_label, 0, _N(mode_label) - 1, false); break;
-    case FILTER:  paramAction(action, filt, 0x13, F("Filtro BW"), filt_label, 0, _N(filt_label) - 1, false); break;
+    case FILTER:  paramAction(action, filt, 0x13, F("Filtro BW"), filt_label, 0, _N(filt_label) - 1, false); break;    
     case BAND:    paramAction(action, bandval, 0x14, F("Banda"), band_label, 0, _N(band_label) - 1, false); break;
     case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
     case VFOSEL:  paramAction(action, vfosel, 0x16, F("Modo VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false); break;
@@ -3084,7 +3086,6 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #else
     case AGC:     paramAction(action, agc, 0x18, F("AGC"), offon_label, 0, 1, false); break;
 #endif // FAST_AGC
-
     case NR:      paramAction(action, nr, 0x19, F("NR"), NULL, 0, 8, false); break;
     case ATT:     paramAction(action, att, 0x1A, F("ATT"), att_label, 0, 7, false); break;
     case ATT2:    paramAction(action, att2, 0x1B, F("ATT2"), NULL, 0, 16, false); break;
@@ -3148,7 +3149,6 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
     case PWM_MAX: paramAction(action, pwm_max, 0x83, F("PA Bias max"), NULL, pwm_min, 255, false); break;
     case SIFXTAL: paramAction(action, si5351.fxtal, 0x84, F("Ref freq"), NULL, 14000000, 28000000, false); break;
     case IQ_ADJ:  paramAction(action, rx_ph_q, 0x85, F("Fase I-Q"), NULL, 0, 180, false); break;
-
 
     case BACKL:   paramAction(action, backlight, 0xA1, F("Backlight"), offon_label, 0, 1, false); break;   // workaround for varying N_PARAM and not being able to overflowing default cases properly
 
