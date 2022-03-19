@@ -3,12 +3,14 @@
 //* Versión adaptada para el proyecto Pixino del microcódigo usdx_SD_V5 de Pablo (EA2EHC).
 //* Versión adaptada originalmente del firmware QCX-SSB.ino de Guido (PE1NNZ)
 //*         QCX-SSB.ino - https://github.com/threeme3/QCX-SSB
-//* Hardware conceptual QCX de Hans Summers (G0UPL) QRP Labs, Pixie adaptation by Pedro (LU7DZ)
+//* Hardware conceptual QCX de Hans Summers (G0UPL) QRP Labs, 
+//* Hardware QCX-SSB por Guido (PE1NNZ) y Manuel (DL2MAN)
+//* Hardware Pixie adaptado por Pedro (LU7DZ)
 //*
 //* Copyright 2019, 2020, 2021   Guido PE1NNZ <pe1nnz@amsat.org>
 //* Copyright 2021, 2022         Pablo EA2EHC
 //* Copyright 2021  QDX Transceiver concept Hans Summers (G0UPL) QRP Labs
-//* Copyright 2022               Pedro LU7DZ  <lu7did@gmail.com>
+//* Copyright 2022               Pedro LU7DZ  <lu7did@gmail.com> (all code excerpts conditionals to #PIXINO)
 //*----------------------------------------------------------------------------------------------------------------
 //* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 //* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use,
@@ -40,6 +42,8 @@
 
 #ifdef PIXINO
 #undef  DEBUG
+#define NORX      1          //Skip all code related to Receiver
+#define SIMPLE_RX 1          //Forces simpler Rx (which will be skipped)
 #endif //PIXINO
 
 #ifdef PIXINO
@@ -109,22 +113,22 @@
 #define LCD_D6   2         //PD2    (pin 4)
 #define LCD_D7   3         //PD3    (pin 5)
 #define LCD_EN   4         //PD4    (pin 6)
-#define LCD_RS  18        //PC4    (pin 27)
+#define LCD_RS  18         //PC4    (pin 27)
 #define FREQCNT  5         //PD5    (pin 11)
 #define ROT_A    6         //PD6    (pin 12)
 #define ROT_B    7         //PD7    (pin 13)
 #define RX       8         //PB0    (pin 14)
-#define SIDETONE 9        //PB1    (pin 15)
-#define KEY_OUT 10        //PB2    (pin 16)
-#define SIG_OUT 11        //PB3    (pin 17)
-#define DAH     12        //PB4    (pin 18)
-#define DIT     13        //PB5    (pin 19)
-#define AUDIO1  14        //PC0/A0 (pin 23)
-#define AUDIO2  15        //PC1/A1 (pin 24)
-#define DVM     16
-#define BUTTONS 17        //PC3/A3 (pin 26)
-#define SDA     18        //PC4    (pin 27)
-#define SCL     19        //PC5    (pin 28)
+#define SIDETONE 9         //PB1    (pin 15)
+#define KEY_OUT 10         //PB2    (pin 16)
+#define SIG_OUT 11         //PB3    (pin 17)
+#define DAH     12         //PB4    (pin 18)
+#define DIT     13         //PB5    (pin 19)
+#define AUDIO1  14         //PC0/A0 (pin 23)
+#define AUDIO2  15         //PC1/A1 (pin 24)
+#define DVM     16         //PC1/A2 
+#define BUTTONS 17         //PC3/A3 (pin 26)
+#define SDA     18         //PC4    (pin 27)
+#define SCL     19         //PC5    (pin 28)
 
 /*
   Código experimental para manejar PA (no utilizado en Pixino)
@@ -133,8 +137,8 @@
 //#define PTX   11        //PB3    (pin 17)  - experimental: HIGH on TX, used as PTT out to enable external PAs
 
 #ifdef SWAP_ROTARY
-#undef ROT_A
-#undef ROT_B
+#undef  ROT_A
+#undef  ROT_B
 #define ROT_A   7         //PD7    (pin 13)
 #define ROT_B   6         //PD6    (pin 12)
 #endif
@@ -168,7 +172,7 @@ String user_sent_cw = "";
    #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.05 or later from https://www.arduino.cc/en/software"
 #endif
 #else
-#if(ARDUINO < 10810)
+#if(ARDUINO < 10805)
    #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
 #endif
 #endif //PIXINO
@@ -727,8 +731,12 @@ public:
       ms(MS1,  fvcoa, fout, PLLA, 0, q, rdiv);
       ms(MS2,  fvcoa, fout, PLLA, 0, 0, rdiv);
       if(iqmsa != ((i-q)*((uint16_t)(fvcoa/fout))/90)){ iqmsa = (i-q)*((uint16_t)(fvcoa/fout))/90; reset(); }
-      
+
+#ifdef PIXINO
+      oe(0b00000100);  // output enable CLK0, CLK1
+#else      
       oe(0b00000011);  // output enable CLK0, CLK1
+#endif //PIXINO
 
 #ifdef x
       ms(MSNA, fvcoa, fxtal);
@@ -742,7 +750,11 @@ public:
       delayMicroseconds(F_MCU/16000000 * 1000000UL/F_DEV);  // Td = 1/(4 * Fdev) phase-shift   https://tj-lab.org/2020/08/27/si5351%e5%8d%98%e4%bd%93%e3%81%a73mhz%e4%bb%a5%e4%b8%8b%e3%81%ae%e7%9b%b4%e4%ba%a4%e4%bf%a1%e5%8f%b7%e3%82%92%e5%87%ba%e5%8a%9b%e3%81%99%e3%82%8b/
       ms(MS1,  fvcoa, fout, PLLA, 0, 0, rdiv);
 
+#ifdef PIXINO
+      oe(0b00000100);  // output enable CLK0, CLK1
+#else
       oe(0b00000011);  // output enable CLK0, CLK1
+#endif //PIXINO      
 #endif
 
       _fout = fout;  // cache
@@ -806,12 +818,11 @@ volatile uint8_t tx = 0;
 volatile uint8_t filt = 0;
 
 /*---------------------------------------------*
- * Control the activation of the fast quickQDX *
- * frequency determination mode                *
+ * Control the activation of the QDX algorithm *
+ * uncomment if willing to enable it           *
  *---------------------------------------------*/
 #ifdef PIXINO
-volatile bool quickQDX = false;
-volatile bool pixino   = true;
+//#define QDX  1
 #endif //PIXINO
 
 inline void _vox(bool trigger)
@@ -839,7 +850,7 @@ const int16_t _F_SAMP_TX = (F_MCU * 4810LL / 20000000);  // Actual ADC sample-ra
  *  If PIXINO the max number of samples should be obtained*
  *--------------------------------------------------------*/
 #ifdef PIXINO
-
+#undef MULTI_ADC
 #else
 #define MULTI_ADC  1         // multiple ADC conversions for more sensitive (+12dB) microphone input
 #endif //PIXINO
@@ -873,15 +884,72 @@ volatile uint8_t vox_thresh = (1 << 0); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 volatile uint8_t quad = 0;
 
+#ifdef PIXINO
+
+#define QDX_AVERAGE 12
+int16_t qdx_prev=0;
+bool    qdx_first=true;
+float   qdx_t1=0.0;
+float   qdx_t2=0.0;
+float   qdx_S=0.0;
+float   qdx_sampling=F_SAMP_TX*1.0;
+int16_t qdx_n=0;
+int16_t qdx_m=0;
+int16_t qdx_mmax=QDX_AVERAGE;
+
 /*-------------------------------------------*
- *       Quick Algorithm                     *
+ *         QDX Algorithm                     *
  *-------------------------------------------*/
-inline int16_t quick(int16_t in)
+inline int16_t qdx(int16_t in)
 {
+/*---------------------------------------------*
+ * on first decode keep cycling till a positive*
+ * input value is found (cross + to -          *
+ *---------------------------------------------*/
+  if (qdx_first && in < 0) {
+     return -1;
+  } else {
+    qdx_first=false;
+    qdx_prev=in;
+    qdx_t1=0.0;
+    return -1;
+  }
+/*--- another sample ---*/
+  qdx_n++;
 
+/*--- + to - crossing ---*/  
+  if (qdx_prev > 0 && in < 0) {
+    
+  } else {
+    qdx_prev=in;
+    return -1;
+  }
+  
+/*--- compute tail t2 and snap frequency ---*/
+  qdx_t2=qdx_prev/(qdx_prev+in);
+  float f=qdx_sampling/(qdx_t1+qdx_t2+(qdx_n*1.0));
 
+/*--- average several samples ---*/  
+  qdx_S=qdx_S+f;
+  qdx_m--;
+
+/*--- compute front tail t1 ---*/  
+  qdx_t1=in/(in+qdx_prev);
+  qdx_prev=in;
+  qdx_n=0;
+
+/*--- already collected average window ---*/  
+  if (qdx_m==0) {
+     f=qdx_S/qdx_mmax;      
+     qdx_m=qdx_mmax;
+     qdx_S=0.0;
+     return int(f);
+  }
+/*---  not yet, continue ---*/  
+  return -1;
+  
 }
-
+#endif //PIXINO
 /*-------------------------------------------*
  *       SSB Generation                      *
  *-------------------------------------------*/
@@ -1028,20 +1096,25 @@ void dsp_tx()
   #undef MULTI_ADC or #define MULTI_ADC 0
   #quickQDX=true;
   -----*/
+#ifdef QDX
+      int16_t df = qdx(adc >> MIC_ATTEN); // convert analog input into phase shifts using the QDX algorithm approximation
+      if (df!=-1) {
+         si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency       
+      }
+#else
+      int16_t df = ssb(adc >> MIC_ATTEN);  // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
+      si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
+#endif //QDX
 
-  if (pixino && quickQDX) {
-
-  int16_t df = quick(adc >> MIC_ATEN); // convert analog input into phase shifts using the QDX algorithm approximation
-
-  } else { 
-
-  int16_t df = ssb(adc >> MIC_ATTEN);  // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
-  }
-
-  si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
   
 
 #endif //MULTI_ADC
+
+
+#ifdef PIXINO
+  if(tx == 1){ OCR1BL = 0; si5351.SendRegister(SI_CLK_OE, 0b11111011); }   // CLK2 carrier always on
+
+#else
 
 #ifdef CARRIER_COMPLETELY_OFF_ON_LOW
   if(tx == 1){ OCR1BL = 0; si5351.SendRegister(SI_CLK_OE, 0b11111111); }   // disable carrier
@@ -1051,6 +1124,8 @@ void dsp_tx()
   if(tx == 255){ si5351.SendRegister(SI_CLK_OE, 0b11111011); } // enable carrier
 #endif //TX_CLK0_CLK1
 #endif //CARRIER_COMPLETELY_OFF_ON_LOW
+
+#endif //PIXINO
 
 #ifdef MOX_ENABLE
   if(!mox) return;
@@ -1762,6 +1837,7 @@ volatile func_t func_ptr;
 
 //#define SIMPLE_RX  1
 
+#ifndef PIXINO
 #ifndef SIMPLE_RX
 volatile uint8_t admux[3];
 volatile int16_t ocomb, qh;
@@ -1859,43 +1935,6 @@ void process(int16_t i_ac2, int16_t q_ac2)
 #endif
 }
 
-/*----------------------------------------*
- * Experimental code                      *
- *----------------------------------------*
-int16_t i0, i1, i2, i3, i4, i5, i6, i7, i8;
-int16_t q0, q1, q2, q3, q4, q5, q6, q7, q8;
-#define M_SR  1
-
-//#define EXPANDED_CIC
-
-#ifdef EXPANDED_CIC
-void sdr_rx_00(){         i0 = sdr_rx_common_i(); func_ptr = sdr_rx_01;   i4 = (i0 + (i2 + i3) * 3 + i1) >> M_SR; }
-void sdr_rx_02(){         i1 = sdr_rx_common_i(); func_ptr = sdr_rx_03;   i8 = (i4 + (i6 + i7) * 3 + i5) >> M_SR; }
-void sdr_rx_04(){         i2 = sdr_rx_common_i(); func_ptr = sdr_rx_05;   i5 = (i2 + (i0 + i1) * 3 + i3) >> M_SR; }
-void sdr_rx_06(){         i3 = sdr_rx_common_i(); func_ptr = sdr_rx_07; }
-void sdr_rx_08(){         i0 = sdr_rx_common_i(); func_ptr = sdr_rx_09;   i6 = (i0 + (i2 + i3) * 3 + i1) >> M_SR; }
-void sdr_rx_10(){         i1 = sdr_rx_common_i(); func_ptr = sdr_rx_11;   i8 = (i6 + (i4 + i5) * 3 + i7) >> M_SR; }
-void sdr_rx_12(){         i2 = sdr_rx_common_i(); func_ptr = sdr_rx_13;   i7 = (i2 + (i0 + i1) * 3 + i3) >> M_SR; }
-void sdr_rx_14(){         i3 = sdr_rx_common_i(); func_ptr = sdr_rx_15; }
-void sdr_rx_15(){         q0 = sdr_rx_common_q(); func_ptr = sdr_rx_00;   q4 = (q0 + (q2 + q3) * 3 + q1) >> M_SR; }
-void sdr_rx_01(){         q1 = sdr_rx_common_q(); func_ptr = sdr_rx_02;   q8 = (q4 + (q6 + q7) * 3 + q5) >> M_SR; }
-void sdr_rx_03(){         q2 = sdr_rx_common_q(); func_ptr = sdr_rx_04;   q5 = (q2 + (q0 + q1) * 3 + q3) >> M_SR; }
-void sdr_rx_05(){         q3 = sdr_rx_common_q(); func_ptr = sdr_rx_06; process(i8, q8); }
-void sdr_rx_07(){         q0 = sdr_rx_common_q(); func_ptr = sdr_rx_08;   q6 = (q0 + (q2 + q3) * 3 + q1) >> M_SR; }
-void sdr_rx_09(){         q1 = sdr_rx_common_q(); func_ptr = sdr_rx_10;   q8 = (q6 + (q4 + q5) * 3 + q7) >> M_SR; }
-void sdr_rx_11(){         q2 = sdr_rx_common_q(); func_ptr = sdr_rx_12;   q7 = (q2 + (q0 + q1) * 3 + q3) >> M_SR; }
-void sdr_rx_13(){         q3 = sdr_rx_common_q(); func_ptr = sdr_rx_14; process(i8, q8); }
-#else
-void sdr_rx_00(){         i0 = sdr_rx_common_i(); func_ptr = sdr_rx_01;   i4 = (i0 + (i2 + i3) * 3 + i1) >> M_SR; }
-void sdr_rx_02(){         i1 = sdr_rx_common_i(); func_ptr = sdr_rx_03;   i8 = (i4 + (i6 + i7) * 3 + i5) >> M_SR; }
-void sdr_rx_04(){         i2 = sdr_rx_common_i(); func_ptr = sdr_rx_05;   i5 = (i2 + (i0 + i1) * 3 + i3) >> M_SR; }
-void sdr_rx_06(){         i3 = sdr_rx_common_i(); func_ptr = sdr_rx_07;   i6 = i4; i7 = i5; q6 = q4; q7 = q5; }
-void sdr_rx_07(){         q0 = sdr_rx_common_q(); func_ptr = sdr_rx_00;   q4 = (q0 + (q2 + q3) * 3 + q1) >> M_SR; }
-void sdr_rx_01(){         q1 = sdr_rx_common_q(); func_ptr = sdr_rx_02;   q8 = (q4 + (q6 + q7) * 3 + q5) >> M_SR; }
-void sdr_rx_03(){         q2 = sdr_rx_common_q(); func_ptr = sdr_rx_04;   q5 = (q2 + (q0 + q1) * 3 + q3) >> M_SR; }
-void sdr_rx_05(){         q3 = sdr_rx_common_q(); func_ptr = sdr_rx_06; process(i8, q8); }
-#endif
-*/
 
 // /*
 static int16_t i_s0za1, i_s0za2, i_s0zb0, i_s0zb1, i_s1za1, i_s1za2, i_s1zb0, i_s1zb1;
@@ -1910,22 +1949,6 @@ void sdr_rx_01(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_02;  q_s0zb1
 void sdr_rx_03(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_04;  q_s1zb1 = q_s1zb0; q_s1zb0 = (ac + (q_s0za1 + q_s0zb0) * 3 + q_s0zb1) >> M_SR; q_s0za1 = ac; }
 void sdr_rx_05(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_06;  q_s0zb1 = q_s0zb0; q_s0zb0 = ac; }
 void sdr_rx_07(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_00;  int16_t q_s1za0 = (ac + (q_s0za1 + q_s0zb0) * 3 + q_s0zb1) >> M_SR; q_s0za1 = ac; q_ac2 = (q_s1za0 + (q_s1za1 + q_s1zb0) * 3 + q_s1zb1); q_s1za1 = q_s1za0; }
-// */
-
-/*----------------------------------*
- * Experimental code                *
- *----------------------------------*
-#define M_SR  0  // CIC N=2
-void sdr_rx_00(){ int16_t ac = sdr_rx_common_i(); func_ptr = sdr_rx_01;  int16_t i_s1za0 = (ac + i_s0za1 + i_s0zb0 * 2 + i_s0zb1) >> M_SR; i_s0za1 = ac; int16_t ac2 = (i_s1za0 + i_s1za1 + i_s1zb0 * 2); i_s1za1 = i_s1za0; process(ac2, q_ac2); }
-void sdr_rx_02(){ int16_t ac = sdr_rx_common_i(); func_ptr = sdr_rx_03;  i_s0zb0 = ac; }
-void sdr_rx_04(){ int16_t ac = sdr_rx_common_i(); func_ptr = sdr_rx_05;  i_s1zb0 = (ac + i_s0za1 + i_s0zb0 * 2) >> M_SR; i_s0za1 = ac; }
-void sdr_rx_06(){ int16_t ac = sdr_rx_common_i(); func_ptr = sdr_rx_07;  i_s0zb0 = ac; }
-void sdr_rx_01(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_02;  q_s0zb0 = ac; }
-void sdr_rx_03(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_04;  q_s1zb0 = (ac + q_s0za1 + q_s0zb0 * 2) >> M_SR; q_s0za1 = ac; }
-void sdr_rx_05(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_06;  q_s0zb0 = ac; }
-void sdr_rx_07(){ int16_t ac = sdr_rx_common_q(); func_ptr = sdr_rx_00;  int16_t q_s1za0 = (ac + q_s0za1 + q_s0zb0 * 2 + q_s0zb1) >> M_SR; q_s0za1 = ac; q_ac2 = (q_s1za0 + q_s1za1 + q_s1zb0 * 2); q_s1za1 = q_s1za0; }
-*/
-
 
 static int16_t ozi1, ozi2;
 
@@ -1939,6 +1962,7 @@ inline int16_t sdr_rx_common_q(){
   OCR1AL = min(max(128 - (ozi2>>5) + 128, 0), 255);
   return ac;
 }
+
 /*-----------------------------------*
  * sdr_rx_common_i()                 *
  * Receiver processing               *
@@ -1966,6 +1990,9 @@ inline int16_t sdr_rx_common_i()
 
 void sdr_rx()
 {
+  
+
+
   // process I for even samples  [75% CPU@R=4;Fs=62.5k] (excluding the Comb branch and output stage)
   ADMUX = admux[1];  // set MUX for next conversion
   ADCSRA |= (1 << ADSC);    // start next ADC conversion
@@ -2023,6 +2050,8 @@ void sdr_rx()
   rx_state++;
 }
 
+
+
 void sdr_rx_q()
 {
   // process Q for odd samples  [75% CPU@R=4;Fs=62.5k] (excluding the Comb branch and output stage)
@@ -2069,6 +2098,9 @@ void sdr_rx_q()
   rx_state++;
 }
 
+
+
+
 inline void sdr_rx_common()
 {
   static int16_t ozi1, ozi2;
@@ -2090,7 +2122,7 @@ inline void sdr_rx_common()
 }
 #endif //OLD_RX
 #endif  //!SIMPLE_RX
-
+#endif //!PIXINO
 
 #ifdef SIMPLE_RX
 volatile uint8_t admux[3];
@@ -2105,6 +2137,9 @@ static struct rx {
 
 void sdr_rx()
 {
+
+#ifndef NORX
+
   static int16_t ocomb;
   static int16_t qh;
 
@@ -2195,6 +2230,8 @@ void sdr_rx()
   } else p->z1 = ac;  // rx_state == I: 2, 6  Q: 1, 5
 
   rx_state++;
+
+#endif //NORX
 }
 
 #endif //SIMPLE_RX
@@ -2435,12 +2472,15 @@ volatile int16_t rit = 0;
 
 uint8_t smode = 1;
 uint32_t max_absavg256 = 0;
-float dbm;
+float dbm=0.0;
 
 static int16_t smeter_cnt = 0;
 
 float smeter(float ref = 0)
 {
+  
+#ifndef NORX
+
   max_absavg256 = max(_absavg256, max_absavg256); // peak
 
   if((smode) && ((++smeter_cnt % 2048) == 0)){   // slowed down display slightly
@@ -2474,6 +2514,8 @@ float smeter(float ref = 0)
     stepsize_showcursor();
     max_absavg256 /= 2;  // Implement peak hold/decay for all meter types    
   }
+#endif //NORX
+
   return dbm;
 }
 
@@ -2485,7 +2527,13 @@ void start_rx()
 {
   _init = 1;
   rx_state = 0;
+
+#ifdef NORX
+  return;
+#else
   func_ptr = sdr_rx_00;  //enable RX DSP/SDR
+#endif //NORX
+  
   adc_start(2, true, F_ADC_CONV*4); admux[2] = ADMUX;  // Note that conversion-rate for TX is factors more
 
   if(dsp_cap == SDR){
@@ -2571,7 +2619,16 @@ void switch_rxtx(uint8_t tx_enable){
 #endif //KEYER
 #endif //SEMI_QSK
 
-      if(semi_qsk) func_ptr = dummy; else func_ptr = sdr_rx_00;
+      if(semi_qsk) {
+         func_ptr = dummy;
+      } else {
+        
+#ifndef NORX      
+         func_ptr = sdr_rx_00;
+#endif //NORX
+         
+      }
+      
     } else {
       centiGain = _centiGain;  // restore AGC setting
 
@@ -2579,7 +2636,11 @@ void switch_rxtx(uint8_t tx_enable){
       semi_qsk_timeout = 0;
 #endif
 
+#ifndef NORX
+
       func_ptr = sdr_rx_00;
+#endif //NORX
+
     }
   }
   if((!dsp_cap) && (!tx_enable) && vox) func_ptr = dummy; //hack: for SSB mode, disable dsp_rx during vox mode enabled as it slows down the vox loop too much!
@@ -2619,11 +2680,15 @@ void switch_rxtx(uint8_t tx_enable){
       else if(rit){ si5351.freq_calc_fast(0); si5351.SendPLLRegisterBulk(); }
 #endif //RIT_ENABLE
 
+#ifdef PIXINO
+      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN=1, CLK1_EN,CLK0_EN=0
+#else
 #ifdef TX_CLK0_CLK1
       si5351.SendRegister(SI_CLK_OE, 0b11111100); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
 #else
       si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN=1, CLK1_EN,CLK0_EN=0
 #endif  //TX_CLK0_CLK1
+#endif  //PIXINO
 
       OCR1AL = 0x80; // make sure SIDETONE is set at 2.5V
 
@@ -2650,15 +2715,23 @@ void switch_rxtx(uint8_t tx_enable){
       OCR1BL = 0; // make sure PWM (KEY_OUT) is set to 0%
 
 #ifdef QUAD
+#ifdef PIXINO
+      si5351.SendRegister(18, 0x0f);  // disable invert on CLK2
+#else
 #ifdef TX_CLK0_CLK1
       si5351.SendRegister(16, 0x0f);  // disable invert on CLK0
       si5351.SendRegister(17, 0x0f);  // disable invert on CLK1
 #else
       si5351.SendRegister(18, 0x0f);  // disable invert on CLK2
 #endif  //TX_CLK0_CLK1
+#endif  //PIXINO
 #endif //QUAD
 
+#ifdef PIXINO
+      si5351.SendRegister(SI_CLK_OE, 0b11111011); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
+#else
       si5351.SendRegister(SI_CLK_OE, 0b11111100); // CLK2_EN=0, CLK1_EN,CLK0_EN=1
+#endif //PIXINO
 
 #ifdef SEMI_QSK
       if((!semi_qsk_timeout) || (!semi_qsk))   // enable RX when no longer in semi-qsk phase; so RX and NTX/PTX outputs are switching only when in RX mode
@@ -3981,6 +4054,8 @@ void loop()
 
 #ifdef SIMPLE_RX
 
+#ifndef NORX
+
         // Experiment: ISR-less sdr_rx():
         smode = 0;
         TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
@@ -4001,6 +4076,7 @@ void loop()
           //for(;micros() < next;);  next = micros() + 16;   // sync every 1000000/62500=16ms (or later if missed)
         } //
 
+#endif //NORX
 #endif //SIMPLE_RX
 
 #ifdef RIT_ENABLE
