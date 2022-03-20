@@ -90,7 +90,7 @@ String user_sent_cw = "";
 
 //FUSES = { .low = 0xFF, .high = 0xD6, .extended = 0xFD };   // Fuse settings should be set at programming (Arduino IDE > Tools > Burn bootloader)
 
-#if(ARDUINO < 10810)
+#if(ARDUINO < 10805)
    #error "Unsupported Arduino IDE version, use Arduino IDE 1.8.10 or later from https://www.arduino.cc/en/software"
 #endif
 #if !(defined(ARDUINO_ARCH_AVR))
