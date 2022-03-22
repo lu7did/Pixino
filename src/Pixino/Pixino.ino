@@ -2856,8 +2856,8 @@ void powerDown()
   sleep_cpu();  // go to sleep mode, wake-up by either INT0, INT1, Pin Change, TWI Addr Match, WDT, BOD
   sleep_disable();
 
-  //void(* reset)(void) = 0; reset();   // soft reset by calling reset vector (does not reset registers to defaults)
-  //PEC do { wdt_enable(WDTO_15MS); for(;;); } while(0);  // soft reset by trigger watchdog timeout
+
+  //PEC*--> (WDT RACE) ---> do { wdt_enable(WDTO_15MS); for(;;); } while(0);  // soft reset by trigger watchdog timeout
 }
 
 /*---------------------------------------------------------------------*
@@ -2865,8 +2865,19 @@ void powerDown()
  *---------------------------------------------------------------------*/
 void show_banner(){
   lcd.setCursor(0, 0);
-  lcd_blanks(); 
-  lcd_blanks();
+
+#ifdef QCX
+  lcd.print(F("QCX"));
+  const char* cap_label[] = { "SSB", "DSP", "SDR" };
+  if(ssb_cap || dsp_cap){ lcd.print(F("-")); lcd.print(cap_label[dsp_cap]); }
+#else
+#ifdef PIXINO
+  lcd.print(F("Pixie"));
+#else
+  lcd.print(F("uSDX"));
+#endif //PIXINO
+#endif //QCX  
+lcd.print(F("\x01 ")); lcd_blanks();
 }
 
 const char* vfosel_label[] = { "A", "B"/*, "Split"*/ };
@@ -3767,7 +3778,7 @@ void setup()
     wdt_reset();
   }
 #ifdef PIXINO  
-  lcd.setCursor(0,0);lcd.print("      ");
+  show_banner();
 #endif //PIXINO
 
 }
