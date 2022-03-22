@@ -59,24 +59,44 @@
   * opciones habilitadas           *
   *--------------------------------*/
 #define KEYER            1   // CW keyer
-#define CW_DECODER       1   // Decodificador CW
-#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
 #define KEY_CLICK        1   // Reduce los clicks del manipulador en la forma de onda.
 #define SEMI_QSK         1   // En CW justo despues de manipular, mantiene la recepcion muda durante un corto periodo de tiempo. No hay recepcion entre caracteres en  TX CW
 #define RIT_ENABLE       1   // Se aplica un desplazamiento en RX respecto a TX
 #define VOX_ENABLE       1   // Activa el trasmisor mediante un nivel de voz o digital en la entrada de audio. El umbral de activacion se define en el menu 3.2
-#define MOX_ENABLE       1   // Monitoriza a traves del altavoz la señal de audio durante la transmision
-#define FAST_AGC         1   // Añade la opcion de control automatico de ganancia rapido, epecial para CW
 #define CW_MESSAGE       1   // Mensaje de llamada CQ en CW. Se lanza haciendo click izuierdo en el menu 4.2
-#define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
-#define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
 /*--------------------------------*
  * opciones condicionales         *
  *--------------------------------*/
-//#ifndef PIXINO
-//#define SWAP_ROTARY      1   // Cambia la direccion del encoder
-//#undef  VOX_ENABLE
-//#endif
+#ifdef PIXINO
+
+#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
+#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
+#define SIMPLE_RX      1
+
+//#define CW_DECODER       1   // Decodificador CW
+//#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
+//#define MOX_ENABLE       1   // Monitoriza a traves del altavoz la señal de audio durante la transmision
+//#define FAST_AGC         1   // Añade la opcion de control automatico de ganancia rapido, epecial para CW
+//#define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
+//#define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
+
+
+#else
+
+//#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
+//#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
+//#define SIMPLE_RX  1
+
+#define CW_DECODER       1   // Decodificador CW
+#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
+#define MOX_ENABLE       1   // Monitoriza a traves del altavoz la señal de audio durante la transmision
+#define FAST_AGC         1   // Añade la opcion de control automatico de ganancia rapido, epecial para CW
+#define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
+#define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
+
+#endif
+
+
 /*--------------------------------*
  * opciones no habilitadas        *
  *--------------------------------*/
@@ -84,8 +104,6 @@
 //#define TUNING_DIAL    1   // Escanea la frecuencia mediante pulsacion larga del pulsador central
 //#define CW_LEARN       1   // Aprender y practiar CW metodo Koch, necesita revison, No activar.
 //#define CAT_STREAMING  1   // Soporte CAT extendido: audio streaming sobre CAT, una vez activado y selecionado mediante el CAT cmd, 7.812ksps 8-bit unsigned audio se envia mediante la  UART. El punto y como ";" es omitido en la trama de datos, y solo se envia para indicar el principio y final del CAT cmd.
-//#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
-//#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
 //#define CW_FREQS_FISTS 1   // Frecuencia por defecto CW VERTICAL cuando cambiamos de banda
 
 /*
@@ -1820,7 +1838,11 @@ volatile func_t func_ptr;
 #undef  R  // Decimating 2nd Order CIC filter
 #define R 4  // Rate change from 62500/2 kSPS to 7812.5SPS, providing 12dB gain
 
-//#define SIMPLE_RX  1
+
+/*----------------------------------------------------------*
+ * Extended Receiver (!SIMPLE_RX)                           *
+ *----------------------------------------------------------*/
+
 #ifndef SIMPLE_RX
 volatile uint8_t admux[3];
 volatile int16_t ocomb, qh;
@@ -2127,6 +2149,13 @@ void sdr_rx()
   rx* p = &rx_inst[b];
   uint8_t _rx_state;
   int16_t ac;
+
+/*----------------------------------------------------------*
+ * Pixino operates with an external direct conversion rx    *
+ * the board has to provide only a LO to work               *
+ *----------------------------------------------------------*/
+#ifndef PIXINO
+ 
   if(b){  // rx_state == 0, 2, 4, 6 -> I-stage
 
     ADMUX = admux[1];  // set MUX for next conversion
@@ -2136,6 +2165,8 @@ void sdr_rx()
     //sdr_common
 
     static int16_t ozi1, ozi2;
+
+    
     if(_init){ ocomb=0; ozi1 = 0; ozi2 = 0; } // hack
 
     // Output stage [25% CPU@R=4;Fs=62.5k]
@@ -2211,6 +2242,7 @@ void sdr_rx()
 
   rx_state++;
 
+#endif //PIXINO
 }
 
 #endif //SIMPLE_RX
@@ -2443,14 +2475,13 @@ enum vfo_t { VFOA=0, VFOB=1, SPLIT=2 };
 volatile uint8_t vfosel = VFOA;
 volatile int16_t rit = 0;
 
-/*--------------------------------------------------------------------*
- * S-Meter evaluation   (NOT USED FOR PIXINO)                         *
- *--------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------------------------*
+ * S-Meter evaluation                                                                                              *
+ * We measure the average amplitude of the signal (see slow_dsp()) but the S-meter should be based on RMS value.   *
+ * So we multiply by 0.707/0.639 in an attempt to roughly compensate, although that only really works if the input *
+ * is a sine wave                                                                                                  *
+ *-----------------------------------------------------------------------------------------------------------------*/
  
-// We measure the average amplitude of the signal (see slow_dsp()) but the S-meter should be based on RMS value.
-// So we multiply by 0.707/0.639 in an attempt to roughly compensate, although that only really works if the input
-// is a sine wave
-
 uint8_t smode = 1;
 uint32_t max_absavg256 = 0;
 float dbm=0.0;
@@ -2506,8 +2537,17 @@ void start_rx()
   _init = 1;
   rx_state = 0;
 
-
+#ifdef PIXINO
+#ifdef SIMPLE_RX
+  func_ptr = sdr_rx;
+#else
   func_ptr = sdr_rx_00;  //enable RX DSP/SDR 
+#endif
+
+#else
+  func_ptr = sdr_rx_00;  //enable RX DSP/SDR 
+#endif //PIXINO
+
   adc_start(2, true, F_ADC_CONV*4); admux[2] = ADMUX;  // Note that conversion-rate for TX is factors more
 
   
@@ -2614,20 +2654,42 @@ void switch_rxtx(uint8_t tx_enable){
       if(semi_qsk) {
          func_ptr = dummy;
       } else {
-        
+
+#ifdef PIXINO
+#ifdef SIMPLE_RX
+      func_ptr = sdr_rx;
+#else
       func_ptr = sdr_rx_00;
-         
+#endif //PEC SIMPLE_RX
+#else
+      func_ptr = sdr_rx_00;
+#endif //PIXINO         
       }
       
     } else {
       centiGain = _centiGain;  // restore AGC setting
-
 #ifdef SEMI_QSK
       semi_qsk_timeout = 0;
 #endif
-      func_ptr = sdr_rx_00;
 
-    }
+/*-----------------------------------------------------------*
+ * PIXINO really don't use the rx function so it implements  *
+ * the SIMPLE_RX (and override part of it to save memory room*
+ *-----------------------------------------------------------*/
+#ifdef PIXINO
+
+#ifdef SIMPLE_RX //PEC
+      func_ptr = sdr_rx;
+#else            
+      func_ptr = sdr_rx_00;
+#endif //PEC PIXINO
+
+#else
+      func_ptr = sdr_rx=00;
+
+#endif //PIXINO
+      
+ }
   }
   if((!dsp_cap) && (!tx_enable) && vox) func_ptr = dummy; //hack: for SSB mode, disable dsp_rx during vox mode enabled as it slows down the vox loop too much!
   interrupts();
@@ -3010,7 +3072,6 @@ void paramAction(uint8_t action, char* value, uint8_t menuid, const __FlashStrin
 
       printlabel(action, menuid, label);  // print normal/menu label
       for(int i = 0; i != 13; i++){ char ch = value[(pos / 8) * 8 + i]; if(ch) lcd.print(ch); else break; } // print value
-      //lcd.print(&value[(pos / 8) * 8]); // print value
       lcd.print('\x01');  // print terminator
       lcd_blanks();
       lcd.setCursor((pos % 8) + (menumode >= 2), 1); lcd.cursor();
@@ -3074,13 +3135,21 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
   if(id == ALL) for(id = 1; id != N_ALL_PARAMS+1; id++) paramAction(action, id);  // for all parameters
   
   switch(id){    // Visible parameters
-    
+
+#ifndef PIXINO    
     case VOLUME:  paramAction(action, volume, 0x11, F("Volumen"), NULL, -1, 16, false); break;    
+#endif //PIXINO
+    
     case MODE:    paramAction(action, mode, 0x12, F("Modo"), mode_label, 0, _N(mode_label) - 1, false); break;
+
+#ifndef PIXINO
     case FILTER:  paramAction(action, filt, 0x13, F("Filtro BW"), filt_label, 0, _N(filt_label) - 1, false); break;    
     case BAND:    paramAction(action, bandval, 0x14, F("Banda"), band_label, 0, _N(band_label) - 1, false); break;
+#endif //PIXINO 
+    
     case STEP:    paramAction(action, stepsize, 0x15, F("Tune Rate"), stepsize_label, 0, _N(stepsize_label) - 1, false); break;
     case VFOSEL:  paramAction(action, vfosel, 0x16, F("Modo VFO"), vfosel_label, 0, _N(vfosel_label) - 1, false); break;
+
 #ifdef RIT_ENABLE
     case RIT:     paramAction(action, rit, 0x17, F("RIT"), offon_label, 0, 1, false); break;    
 #endif
@@ -3090,9 +3159,13 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #else
     case AGC:     paramAction(action, agc, 0x18, F("AGC"), offon_label, 0, 1, false); break;
 #endif // FAST_AGC
+
+#ifndef PIXINO
     case NR:      paramAction(action, nr, 0x19, F("NR"), NULL, 0, 8, false); break;
     case ATT:     paramAction(action, att, 0x1A, F("ATT"), att_label, 0, 7, false); break;
     case ATT2:    paramAction(action, att2, 0x1B, F("ATT2"), NULL, 0, 16, false); break;
+#endif //PIXINO
+    
     case SMETER:  paramAction(action, smode, 0x1C, F("S-meter"), smode_label, 0, _N(smode_label) - 1, false); break;
 
 #ifdef CW_DECODER
@@ -3120,7 +3193,9 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
     case KEY_PIN:  paramAction(action, keyer_swap,  0x27, F("Keyer Swap"), offon_label, 0, 1, false); break;
 #endif
 
+#ifndef PIXINO
     case KEY_TX:   paramAction(action, practice,    0x28, F("Practica"), offon_label, 0, 1, false); break;
+#endif //PIXINO    
 
 #ifdef VOX_ENABLE
     case VOX:     paramAction(action, vox,        0x31, F("VOX"), offon_label, 0, 1, false); break;
@@ -3148,11 +3223,13 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #endif //CW_MESSAGE_EXT
 #endif //CW_MESSAGE
 
+#ifndef PIXINO
     case DRIVE:   paramAction(action, drive,   0x81, F("TX Drive"), NULL, 0, 8, false); break;
     case PWM_MIN: paramAction(action, pwm_min, 0x82, F("PA Bias min"), NULL, 0, pwm_max - 1, false); break;
     case PWM_MAX: paramAction(action, pwm_max, 0x83, F("PA Bias max"), NULL, pwm_min, 255, false); break;
     case SIFXTAL: paramAction(action, si5351.fxtal, 0x84, F("Ref freq"), NULL, 14000000, 28000000, false); break;
     case IQ_ADJ:  paramAction(action, rx_ph_q, 0x85, F("Fase I-Q"), NULL, 0, 180, false); break;
+#endif //PIXINO    
 
     case BACKL:   paramAction(action, backlight, 0xA1, F("Backlight"), offon_label, 0, 1, false); break;   // workaround for varying N_PARAM and not being able to overflowing default cases properly
 
@@ -3185,6 +3262,7 @@ void initPins(){
   pinMode(RX, OUTPUT);
   pinMode(KEY_OUT, OUTPUT);
   pinMode(BUTTONS, INPUT);  // L/R/rotary button
+
   
   pinMode(DIT, INPUT_PULLUP);
   //PEC pinMode(DAH, INPUT);  // pull-up DAH 10k via AVCC
