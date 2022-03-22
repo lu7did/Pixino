@@ -73,6 +73,7 @@
 #define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
 #define SIMPLE_RX      1
 
+//#define QDX              1   // Enable QDX algorithm for TX
 //#define CW_DECODER       1   // Decodificador CW
 //#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
 //#define MOX_ENABLE       1   // Monitoriza a traves del altavoz la señal de audio durante la transmision
@@ -493,20 +494,7 @@ public:
     I2C_SCL_HI();    \
     I2C_SCL_LO();
 
-  /*#define SendByte(data) \
-    SendBit(data, 1 << 7) \
-    SendBit(data, 1 << 6) \
-    SendBit(data, 1 << 5) \
-    SendBit(data, 1 << 4) \
-    SendBit(data, 1 << 3) \
-    SendBit(data, 1 << 2) \
-    SendBit(data, 1 << 1) \
-    SendBit(data, 1 << 0) \
-    I2C_SDA_HI();  // recv ACK \
-    DELAY(I2C_DELAY);     \
-    I2C_SCL_HI();         \
-    I2C_SCL_LO();*/
-
+  
   inline void SendByte(uint8_t data){
     SendBit(data, 1 << 7);
     SendBit(data, 1 << 6);
@@ -639,24 +627,9 @@ public:
     uint32_t msb128 = _msb128 + ((int64_t)(_div * (int32_t)df) * _MSC * 128) / fxtal;
 
     
-    //uint32_t msb128 = ((int64_t)(_div * (int32_t)df + _mod) * _MSC * 128) / fxtal; // @pre: 14<=_div<=144, |df|<=5000, _mod<=1800e3 (for fout<30M), _MSC=524288
-    //#define _MSC  (F_XTAL/128)   // MSC exact multiple of F_XTAL (and maximized to fit in max. span 1048575)
-    //uint32_t msb128 = (_div * (int32_t)df + _mod);
-    //#define _MSC  0xFFFFF  // Old algorithm 114% CPU load, shortcut for a fixed fxtal=27e6
-    //register uint32_t xmsb = (_div * (_fout + (int32_t)df)) % fxtal;  // xmsb = msb * fxtal/(128 * _MSC);
-    //uint32_t msb128 = xmsb * 5*(32/32) - (xmsb/32);  // msb128 = xmsb * 159/32, where 159/32 = 128 * 0xFFFFF / fxtal; fxtal=27e6
-    //#define _MSC  (F_XTAL/128)  // 114% CPU load  perfect alignment
-    //uint32_t msb128 = (_div * (_fout + (int32_t)df)) % fxtal;
-
-
+  
     uint32_t msp1 = _msa128min512 + msb128 / _MSC;  // = 128 * _msa + msb128 / _MSC - 512;
     uint32_t msp2 = msb128 % _MSC;  // = msb128 - msb128/_MSC * _MSC;
-
-    //uint32_t msp1 = _msa128min512;  // = 128 * _msa + msb128 / _MSC - 512;  assuming msb128 < _MSC, so that msp1 is constant
-    //uint32_t msp2 = msb128;  // = msb128 - msb128/_MSC * _MSC, assuming msb128 < _MSC
-    //pll_regs[0] = BB1(msc);  // 3 regs are constant
-    //pll_regs[1] = BB0(msc);
-    //pll_regs[2] = BB2(msp1);
 
     pll_regs[3] = BB1(msp1);
     pll_regs[4] = BB0(msp1);
@@ -670,8 +643,7 @@ public:
     i2c.SendByte(SI5351_ADDR << 1);
     i2c.SendByte(26+0*8 + 3);  // Write to PLLA
 
-    //i2c.SendByte(26+1*8 + 3);  // Write to PLLB
-
+  
     i2c.SendByte(pll_regs[3]);
     i2c.SendByte(pll_regs[4]);
     i2c.SendByte(pll_regs[5]);
@@ -888,71 +860,72 @@ volatile uint8_t vox_thresh = (1 << 0); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 volatile uint8_t quad = 0;
 
-//#ifdef PIXINO
-//#define QDX_AVERAGE 12
-//int16_t qdx_prev=0;
-//bool    qdx_first=true;
-//float   qdx_t1=0.0;
-//float   qdx_t2=0.0;
-//float   qdx_S=0.0;
-//float   qdx_sampling=F_SAMP_TX*1.0;
-//int16_t qdx_n=0;
-//int16_t qdx_m=0;
-//int16_t qdx_mmax=QDX_AVERAGE;
+#ifdef QDX  
+
+#define QDX_AVERAGE 12
+int16_t qdx_prev=0;
+bool    qdx_first=true;
+float   qdx_t1=0.0;
+float   qdx_t2=0.0;
+float   qdx_S=0.0;
+float   qdx_sampling=F_SAMP_TX*1.0;
+int16_t qdx_n=0;
+int16_t qdx_m=0;
+int16_t qdx_mmax=QDX_AVERAGE;
 
 /*-------------------------------------------*
  *         QDX Algorithm                     *
  *-------------------------------------------*/
-//inline int16_t qdx(int16_t in)
-//{
+inline int16_t qdx(int16_t in)
+{
 /*---------------------------------------------*
  * on first decode keep cycling till a positive*
  * input value is found (cross + to -          *
  *---------------------------------------------*/
-//  if (qdx_first && in < 0) {
-//     return -1;
-//  } else {
-//    qdx_first=false;
-//    qdx_prev=in;
-//    qdx_t1=0.0;
-//    return -1;
-//  }
+  if (qdx_first && in < 0) {
+     return -1;
+  } else {
+    qdx_first=false;
+    qdx_prev=in;
+    qdx_t1=0.0;
+    return -1;
+  }
 /*--- another sample ---*/
-//  qdx_n++;
+  qdx_n++;
 
 /*--- + to - crossing ---*/  
-//  if (qdx_prev > 0 && in < 0) {
-//    
-//  } else {
-//    qdx_prev=in;
-//    return -1;
-//  }
+  if (qdx_prev > 0 && in < 0) {
+    
+  } else {
+    qdx_prev=in;
+    return -1;
+  }
   
 /*--- compute tail t2 and snap frequency ---*/
- // qdx_t2=qdx_prev/(qdx_prev+in);
- // float f=qdx_sampling/(qdx_t1+qdx_t2+(qdx_n*1.0));
+  qdx_t2=qdx_prev/(qdx_prev+in);
+  float f=qdx_sampling/(qdx_t1+qdx_t2+(qdx_n*1.0));
 
 /*--- average several samples ---*/  
-//  qdx_S=qdx_S+f;
-//  qdx_m--;
+  qdx_S=qdx_S+f;
+  qdx_m--;
 
 /*--- compute front tail t1 ---*/  
-//  qdx_t1=in/(in+qdx_prev);
-//  qdx_prev=in;
-//  qdx_n=0;
+  qdx_t1=in/(in+qdx_prev);
+  qdx_prev=in;
+  qdx_n=0;
 
 /*--- already collected average window ---*/  
-//  if (qdx_m==0) {
-//     f=qdx_S/qdx_mmax;      
-//     qdx_m=qdx_mmax;
-//     qdx_S=0.0;
-//     return int(f);
-//  }
+  if (qdx_m==0) {
+     f=qdx_S/qdx_mmax;      
+     qdx_m=qdx_mmax;
+     qdx_S=0.0;
+     return int(f);
+  }
 /*---  not yet, continue ---*/  
-//  return -1;
+  return -1;
   
-//}
-//#endif //PIXINO
+}
+#endif //QDX -- PIXINO
 /*-------------------------------------------*
  *       SSB Generation                      *
  *-------------------------------------------*/
@@ -1099,18 +1072,16 @@ void dsp_tx()
   #undef MULTI_ADC or #define MULTI_ADC 0
   #quickQDX=true;
   -----*/
-//#ifdef QDX
-//      int16_t df = qdx(adc >> MIC_ATTEN); // convert analog input into phase shifts using the QDX algorithm approximation
-//      if (df!=-1) {
-//         si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency       
-//      }
-//#else
+#ifdef QDX
+int16_t df = qdx(adc >> MIC_ATTEN); // convert analog input into phase shifts using the QDX algorithm approximation
+if (df!=-1) {
+    si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency       
+}
+
+#else
       int16_t df = ssb(adc >> MIC_ATTEN);  // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
       si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
-//#endif //QDX
-
-  
-
+#endif //QDX
 #endif //MULTI_ADC
 
 
