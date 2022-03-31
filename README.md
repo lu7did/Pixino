@@ -1,9 +1,12 @@
 ## Ham radio Pixie Transceiver controlled by an Ardunio Nano board
 
+(merged) 
+
 The Pixino board is specialized on digital modes and inspired on the algorithms
 created by Summers (G0UPL) but with a more primitive implementation for
 experimentation uses only, if you plan to operate seriously on digital modes
 buy the excellent QRP-Labs QDX kit.
+
 
 This is a project built on top of the uSDX firmware (QCX-SSB) by Guido (PE1NNZ)
 with modifications from Pablo (EA2EHC).
