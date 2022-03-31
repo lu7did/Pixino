@@ -1,8 +1,6 @@
 ## Ham radio Pixie Transceiver controlled by an Ardunio Nano board
 
 
-(agregado)
-
 The Pixino board is specialized on digital modes and inspired on the algorithms
 created by Summers (G0UPL) but with a more primitive implementation for
 experimentation uses only, if you plan to operate seriously on digital modes
