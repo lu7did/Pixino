@@ -39,7 +39,7 @@ on very favorable conditions.
 An explanation of how the transceiver work can be found [here](http://w1sye.org/wp-content/uploads/2017/01/NCRC_PixieOperation.pdf).
 
 This project starts with a working Pixie transceiver (a cheap kit bought at eBay or other sellers) and to integrate it with
-an Arduino Uno board controlling a Si 5351 board to provide the signal generation and other functionality.
+an Arduino Nano board controlling a Si5351 board to provide the signal generation and other functionality.
 
 Instead of a crystal based signal generation DDS is be used. The rest of the code deals mostly with the user interface and operating features, among others:
 
