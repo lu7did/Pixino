@@ -163,4 +163,21 @@ by the [QCX-SSB](https://github.com/threeme3/QCX-SSB) project and the entire ech
 Also my own work with the projects [PixiePi](http://www.github.com/lu7did/PixiePi) and [OrangeThunder](http://www.github.com/lu7did/OrangeThunder) had
 been largely used to extract code for this project.
 
+# Work in progress
+
+## Features
+
+- Finalize basic operation with QCX-SSB firmware classic SSB mode.
+- Incorporate QDX algorithm to generate digital modes.
+- Prototype wiring for stand-alone +12V operation (internal +5V regulator).
+- Add receiver functions to measure signal strength (wire SPKR to A0, polarization, enable Simple_RX, etc.)
+- Customize useful functions in and non-useful functions on QCX-SSB firmware out.
+- Incorporate VOX mode for transmission.
+- Enable, test and deploy CAT work.
+- Re-wire external keyer.
+- Box.
+- PCB.
+- Add memory meassuring function.
+
+## Issues
 
