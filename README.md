@@ -95,10 +95,8 @@ Operating with a 12V supply the final transistor might become quite hot and inde
 Space is very limited on typical kits but a small piece of aluminum might be enough, be aware not to short either L1 nor L3
 with it.
 
-The keyer transistor Q1 will benefit from a heat sink as well if long keying times are expected.
-
-A cooler can be activated using the GPIO24 line, feed the cooler not from the Raspberry Pi board but from the +5V regulator or
-external power supply if used.
+The keyer transistor Q1 will benefit from a heat sink as well if long keying times are expected, a cooler fan can be
+turned on with the KEYER line if needed.
 
 
 ## Broadcast Interference (BCI)
