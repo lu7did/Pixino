@@ -1,29 +1,30 @@
 ## Ham radio Pixie Transceiver controlled by an Ardunio Nano board
 
 
-
-The Pixino board is specialized on digital modes and inspired on the algorithms
+The Pixino board is a ham radio experimental transceiver which is 
+specialized on digital modes and inspired on the algorithms
 created by Summers (G0UPL) but with a more primitive implementation for
 experimentation uses only, if you plan to operate seriously on digital modes
 buy the excellent QRP-Labs QDX kit.
 
-
 This is a project built on top of the uSDX firmware (QCX-SSB) by Guido (PE1NNZ)
-with modifications from Pablo (EA2EHC).
+with modifications from Pablo (EA2EHC), the approach to involve a Pixie kit with
+a ham radio project using SDR processing has been explored previously with the
+Raspberry Pi Z PixiePi project
 
 # Intended Features
 
 Initial project setup for HF Arduino controlled Pixie transceiver:
 
-*     Operate CW-USB
-*     LCD 16x2 + encoder based control
-*     Dual VFO (A/B) for split mode
-*     VOX & PTT control
-*     TS-480 CAT command
-*     Operates 7.0-7.3 MHz
-*     Largely inspired on Guido (PE1NNZ) with QCX-SSB.
-*     Largely based on my own projects Pi4D/PixiePi
-*     Operates with both the standard QCX-SSB and QDX algorithm
+- Operate CW-USB
+- LCD 16x2 + encoder based control
+- Dual VFO (A/B) for split mode
+- VOX & PTT control
+- TS-480 CAT command
+- Operates 7.0-7.3 MHz
+- Largely inspired on Guido (PE1NNZ) with QCX-SSB.
+- Largely based on my own projects Pi4D/PixiePi
+- Operates with both the standard QCX-SSB and QDX algorithm
 
 # Background
 
@@ -40,9 +41,7 @@ An explanation of how the transceiver work can be found [here](http://w1sye.org/
 This project starts with a working Pixie transceiver (a cheap kit bought at eBay or other sellers) and to integrate it with
 an Arduino Uno board controlling a Si 5351 board to provide the signal generation and other functionality.
 
-Instead of a crystal based signal generation DDS is be used.
-
-The rest of the code deals mostly with the user interface and operating features, among others:
+Instead of a crystal based signal generation DDS is be used. The rest of the code deals mostly with the user interface and operating features, among others:
 
 ## Hardware prototype
 
