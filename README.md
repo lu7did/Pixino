@@ -139,7 +139,8 @@ In particular this kit is NOT a replacement nor an alternative to the following 
 
 For all of them do yourself a favor and buy a kit, assemble it and enjoy the experience.
 
-Not to mention other relatively higher scale setups such as the BitX, mcHF or minion SDR transceivers.
+Not to mention other relatively higher scale setups such as the BitX, mcHF or minion SDR transceivers and, of course,
+all variants of the uSDX/uSDR projects.
 
 ## DISCLAIMER
 
