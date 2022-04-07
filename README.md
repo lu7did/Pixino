@@ -51,7 +51,7 @@ The original design from Guido (PE1NNZ) based on the QCX design from Hans Summer
 ![Alt Text](images/usdx.png "uSDX Original QCX-SSB")
 
 Some small modifications to adapt the controller to operate with a Pixie design
-![Alt Text](images/pixino.bmp "Pixino hardware prototype")
+![Alt Text](images/pixinoSCH.jpg "Pixino hardware prototype")
 
 
 # Chinese Pixie MODS
