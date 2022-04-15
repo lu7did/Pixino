@@ -22,9 +22,14 @@ Initial project setup for HF Arduino controlled Pixie transceiver:
 - VOX & PTT control
 - TS-480 CAT command
 - Operates 7.0-7.3 MHz
-- Largely inspired on Guido (PE1NNZ) with QCX-SSB.
-- Largely based on my own projects Pi4D/PixiePi
-- Operates with both the standard QCX-SSB and QDX algorithm
+
+## Credits
+
+- Largely inspired from Guido (PE1NNZ) with QCX-SSB [here] (https://github.com/threeme3/usdx)
+- Code excerpts and processing algorithms taken from my own projects Pi4D/PixiePi
+- Taping on ideas and work from WB2CBA ADX concepts and ideas [here] (//https://github.com/WB2CBA/ADX)
+- Algorithms for frequency detection from Burkhard Kainka(DK7JD) [here] (http://elektronik-labor.de/HF/SDRtxFSK2.html)
+- Operates with both the standard QCX-SSB and QDX algorithm as described by Hans [here] (https://www.qrp-labs.com/images/qdx/manual_operation_1_03.pdf)
 
 # Background
 
@@ -46,6 +51,7 @@ Instead of a crystal based signal generation DDS is be used. The rest of the cod
 ## Hardware prototype
 
 This is a snapshot of the current prototype used to develop and debug this project:
+![Alt Text](images/pixino_prototype.jpg "Pixino prototype board")
 
 The original design from Guido (PE1NNZ) based on the QCX design from Hans Summers (G0UPL) at QRP-Labs
 ![Alt Text](images/usdx.png "uSDX Original QCX-SSB")
