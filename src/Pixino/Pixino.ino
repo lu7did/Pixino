@@ -49,6 +49,10 @@
 #define VERSION   "1.02t"
 #endif  //PIXINO
 
+#ifdef DEBUG
+char hi[80];
+#endif //DEBUG
+
 // Interruptores de configuracion: Quita o pon la doble barra para activar o desactivar diferentes caracteristicas.
 /*====================================================================================================================*
  *  Configuración maestra                                                                                             *
@@ -515,9 +519,6 @@ public:
     uint16_t i = 60000;
     for(;(!I2C_SCL_GET()) && i; i--);  // wait util slave release SCL to HIGH (meaning data valid), or timeout at 3ms
 
-#ifdef DEBUG    
-    if(!i){ lcd.setCursor(0, 1); lcd.print(F("E07 I2C timeout")); }
-#endif 
 
     uint8_t data = I2C_SDA_GET();
     I2C_SCL_LO();
@@ -829,6 +830,7 @@ const int16_t _F_SAMP_TX = (F_MCU * 4810LL / 20000000);  // Actual ADC sample-ra
 /*--------------------------------------------------------*
  *  If PIXINO the max number of samples should be obtained*
  *--------------------------------------------------------*/
+
 #define MULTI_ADC  1         // multiple ADC conversions for more sensitive (+12dB) microphone input
 
 //#define TX_CLK0_CLK1  1   // use CLK0, CLK1 for TX (instead of CLK2), you may enable and use NTX pin for enabling the TX path (this is like RX pin, except that RX may also be used as attenuator)
@@ -1055,6 +1057,17 @@ void dsp_tx()
 
   _adc = (adc/4 - (512 - AF_BIAS));        // now make sure that we keep a postive bias offset (to prevent the phase swapping 180 degrees and potentially causing negative feedback (RFI)
 
+/*
+#ifdef DEBUG
+  cdown--;
+  if (cdown == 0) {
+     sprintf(hi,"MULTI_ADC Sample=%d ADC=%d adc=%d df=%d\n",cdown,ADC,adc,df);
+     Serial.print(hi);
+     cdown=1024;
+  }
+#endif //DEBUG  
+*/
+
 #else  // SSB with single ADC conversion:
 
   ADCSRA |= (1 << ADSC);    // start next ADC conversion (trigger ADC interrupt if ADIE flag is set)
@@ -1062,6 +1075,8 @@ void dsp_tx()
   si5351.SendPLLRegisterBulk();       // submit frequency registers to SI5351 over 731kbit/s I2C (transfer takes 64/731 = 88us, then PLL-loopfilter probably needs 50us to stabalize)
   OCR1BL = amp;                        // submit amplitude to PWM register (takes about 1/32125 = 31us+/-31us to propagate) -> amplitude-phase-alignment error is about 30-50us
   int16_t adc = ADC - 512; // current ADC sample 10-bits analog input, NOTE: first ADCL, then ADCH
+
+
 
 /*---------------------------------*
  * Compute df based on DSP for I/Q *
@@ -1072,17 +1087,12 @@ void dsp_tx()
   #undef MULTI_ADC or #define MULTI_ADC 0
   #quickQDX=true;
   -----*/
-#ifdef QDX
-int16_t df = qdx(adc >> MIC_ATTEN); // convert analog input into phase shifts using the QDX algorithm approximation
-if (df!=-1) {
-    si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency       
-}
-
-#else
       int16_t df = ssb(adc >> MIC_ATTEN);  // convert analog input into phase-shifts (carrier out by periodic frequency shifts)
       si5351.freq_calc_fast(df);           // calculate SI5351 registers based on frequency shift and carrier frequency
-#endif //QDX
+
 #endif //MULTI_ADC
+
+
 
 
 #ifdef PIXINO
@@ -2238,6 +2248,7 @@ void adc_start(uint8_t adcpin, bool ref1v1, uint32_t fs)
   ADCSRA |= ((uint8_t)log2((uint8_t)(F_CPU / 13 / fs))) & 0x07;  // ADC Prescaler (for normal conversions non-auto-triggered): ADPS = log2(F_CPU / 13 / Fs) - 1; ADSP=0..7 resulting in resp. conversion rate of 1536, 768, 384, 192, 96, 48, 24, 12 kHz
   ADCSRA |= (1 << ADEN);  // enable ADC
 
+
 #ifdef ADC_NR
   set_sleep_mode(SLEEP_MODE_IDLE);
   sleep_enable();
@@ -2519,8 +2530,14 @@ void start_rx()
   func_ptr = sdr_rx_00;  //enable RX DSP/SDR 
 #endif //PIXINO
 
+#ifdef PIXINO   //Only as DEBUG mode to investigate why sound isn't working
+
+ adc_start(2, false, F_ADC_CONV*4); admux[2] = ADMUX;  // Note that conversion-rate for TX is factors more
+
+#else
   adc_start(2, true, F_ADC_CONV*4); admux[2] = ADMUX;  // Note that conversion-rate for TX is factors more
 
+#endif
   
   if(dsp_cap == SDR){
 
@@ -2665,8 +2682,11 @@ void switch_rxtx(uint8_t tx_enable){
   if((!dsp_cap) && (!tx_enable) && vox) func_ptr = dummy; //hack: for SSB mode, disable dsp_rx during vox mode enabled as it slows down the vox loop too much!
   interrupts();
 
-  if(tx_enable) ADMUX = admux[2];
-  else _init = 1;
+  if(tx_enable) { 
+     ADMUX = admux[2];
+  } else {
+    _init = 1;
+  }
   rx_state = 0;
 
 #ifdef CW_DECODER
@@ -3807,7 +3827,12 @@ void setup()
   Command_IF();
 #endif //CAT 
 
-
+#ifdef DEBUG
+#define BAUD 38400
+  Serial.begin(16000000ULL * BAUD / F_MCU); // corrected for F_CPU=20M
+  sprintf(hi,"\n\nPixino (c) LU7DZ\nDebug stream\n");
+  Serial.print(hi);
+#endif
 
 #ifdef KEYER
   keyerState = IDLE;
@@ -3818,9 +3843,11 @@ void setup()
   digitalWrite(DIT,1); //PEC
   for(; !_digitalRead(DIT) || ((mode == CW) && (!_digitalRead(DAH)));){ // wait until DIH/DAH/PTT is released to prevent TX on startup
     lcd.setCursor(15, 1); lcd.print('T');
+
 #ifdef PIXINO    
     lcd.setCursor(0,0);lcd.print("PTT=On");
 #endif //PIXINO    
+
     delay(1000);
     lcd.setCursor(15, 1); lcd.print(' ');
     delay(1000);
@@ -3841,11 +3868,13 @@ void loop()
 {
 
 wdt_disable(); //PEC
+
 #ifdef VOX_ENABLE
   if((vox) && ((mode == LSB) || (mode == USB))){  // If VOX enabled (and in LSB/USB mode), then take mic samples and feed ssb processing function, to derive amplitude, and potentially detect cross vox_threshold to detect a TX or RX event: this is expressed in tx variable
     if(!vox_tx){ // VOX not active
 
 #ifdef MULTI_ADC
+      
       if(vox_sample++ == 16){  // take N sample, then process
         ssb(((int16_t)(vox_adc/16) - (512 - AF_BIAS)) >> MIC_ATTEN);   // sampling mic
         vox_sample = 0;
@@ -3862,11 +3891,13 @@ wdt_disable(); //PEC
         switch_rxtx(255);
         //for(;(tx);) wdt_reset();  // while in tx (workaround for RFI feedback related issue)
         //delay(100); tx = 255;
+        Serial.print("VOX enabled\n");
       }
     } else if(!tx){  // VOX activated, no audio detected -> RX
       switch_rxtx(0);
       vox_tx = 0;
       delay(32); //delay(10);
+      Serial.print("VOX disabled\n");
       //vox_adc = 0; for(i = 0; i != 32; i++) ssb(0); //clean buffers
       //for(int i = 0; i != 32; i++) ssb((analogSampleMic() - 512) >> MIC_ATTEN); // clear internal buffer
       //tx = 0; // make sure tx is off (could have been triggered by rubbish in above statement)
