@@ -63,7 +63,18 @@ This is a snapshot of the current prototype used to develop and debug this proje
 The original design from Guido (PE1NNZ) based on the QCX design from Hans Summers (G0UPL) at QRP-Labs
 ![Alt Text](images/usdx.png "uSDX Original QCX-SSB")
 
-Some small modifications to adapt the controller to operate with a Pixie design
+Some small modifications to adapt the controller to operate with a Pixie design, basically:
+
+- Then entire reception block of the uSDX is not implemented, the receiver is a DC one provided by the Pixie module.
+- CLK2 is routed as a X-tal replacement on the Pixie, it is enabled both during RX and TX to feed the receiver and transmitter function.
+- CLK1/0 are left unused.
+- A PTT circuit is added to operate the KEY control of the Pixie board.
+- No speaker, ISP.
+- The transmitter chain is replaced by the Pixie module.
+- Encoder is moved from PD6/PD7 (D6-D7) to PD5/PB0 (D5-D8) to clear D6/D7 to be used as AIN0/AIN1 for the ADX algorithm.
+
+The circuit used is as follows
+
 ![Alt Text](images/pixinoSCH.jpg "Pixino hardware prototype")
 
 
@@ -180,9 +191,12 @@ Also some reports were gathered from the PSK Reporter site [link](http://pskrepo
 
 # Work in progress
 
-- Incorporate QDX-like algorithm to generate digital modes as prototyped by Barb (WB2CBA) [project](https://github.com/WB2CBA/ADX).
+- Dual circuit for input
+- BUTTONS hangs the application.
+- Incorporate ADX/QDX-like algorithm to generate digital modes as prototyped by Barb (WB2CBA) [project](https://github.com/WB2CBA/ADX).
 - Prototype wiring for stand-alone +12V operation (internal +5V regulator).
 - Add receiver functions to measure signal strength (wire SPKR to A0, polarization, enable Simple_RX, etc.)
+- Add transmitter function to show audio level at the S-Meter
 - Customize useful functions in and non-useful functions on QCX-SSB firmware out.
 - Incorporate VOX mode for transmission.
 - Enable, test and deploy CAT work.
