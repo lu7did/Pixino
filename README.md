@@ -161,7 +161,7 @@ This project must not be seen as a replacement for other fine kits such as the Q
 just a USD 4.- Pixie board, so it can be compared and used with other similar boards as well as long as the Xtal can be replaced by a
 DDS.
 
-#On the Air Tests
+# On the Air Tests
 
 No true ham project is finished until some on-the-air tests are performed, and this project isn't an exception.
 Although the firmware allow several modes to be explored such as CW, PSK and Weak Signal modes (any mode that doesn't require amplitude modulation or
