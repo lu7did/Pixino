@@ -830,8 +830,11 @@ const int16_t _F_SAMP_TX = (F_MCU * 4810LL / 20000000);  // Actual ADC sample-ra
 /*--------------------------------------------------------*
  *  If PIXINO the max number of samples should be obtained*
  *--------------------------------------------------------*/
+#ifndef PIXINO //For PIXINO is just the simple ADC process (one pass)
 
 #define MULTI_ADC  1         // multiple ADC conversions for more sensitive (+12dB) microphone input
+
+#endif //PIXINO
 
 //#define TX_CLK0_CLK1  1   // use CLK0, CLK1 for TX (instead of CLK2), you may enable and use NTX pin for enabling the TX path (this is like RX pin, except that RX may also be used as attenuator)
 //#define QUAD  1           // invert TX signal for phase changes > 180
@@ -2530,7 +2533,7 @@ void start_rx()
   func_ptr = sdr_rx_00;  //enable RX DSP/SDR 
 #endif //PIXINO
 
-#ifdef PIXINO   //Only as DEBUG mode to investigate why sound isn't working
+#ifdef PIXINO   //For Pixino use VCC=VREF=5V as a reference instead of the 1.1V internal reference
 
  adc_start(2, false, F_ADC_CONV*4); admux[2] = ADMUX;  // Note that conversion-rate for TX is factors more
 
