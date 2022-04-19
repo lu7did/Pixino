@@ -5,6 +5,7 @@
 //*         QCX-SSB.ino - https://github.com/threeme3/QCX-SSB
 //* Hardware conceptual QCX de Hans Summers (G0UPL) QRP Labs, 
 //* Hardware QCX-SSB por Guido (PE1NNZ) y Manuel (DL2MAN)
+//* Hardware ADX por por Barb (WB2CBA)
 //* Hardware Pixie adaptado por Pedro (LU7DZ)
 //*
 //* Copyright 2019, 2020, 2021   Guido PE1NNZ <pe1nnz@amsat.org>
@@ -13,19 +14,24 @@
 //* Copyright 2022               Pedro LU7DZ  <lu7did@gmail.com> (all code excerpts conditionals to #PIXINO)
 //*----------------------------------------------------------------------------------------------------------------
 //* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-//* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use,
-//* copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//* documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+//*  the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+//* and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+//* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+//* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+//* WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+//* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+//* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //*----------------------------------------------------------------------------------------------------------------
 //*  Version modificada y castellanizada para la placa usdx_SD_V3, usdx_SD_V4 de EA2EHC.
 //*  Capacidades añadidas para el aprendizaje y practica de CW (En proyecto y evolucion)
-//* -- Especial para el Grupo Tortugas --
 //*----------------------------------------------------------------------------------------------------------------
 //*  Versión modificada para adaptar a la placa experimental Pixino, cuyas principales caracteristicas son
-//*      - Transceptor digital modelado conceptualmente a partir de los algoritmos del transceptor QDX
-//*        de QRP Labs, (c) Hans Summers (G0UPL) QRP Labs.
+//*      - Transceptor digital modelado conceptualmente a partir de la placa QCX de QRP Labs, (c) Hans Summers (G0UPL) QRP Labs.
 //*        Ni el código utilizado ni el circuito son similares al transceptor QDX pero el algoritmo de detección
 //*        está modelado en el manual "manual_1_10.pdf" pagina 48 "Audio Frequency Analysis" extraido del link
 //*        https://www.qrp-labs.com/images/qdx/manual_1_10.pdf
+//*      - Conceptos del transceptor ADX desarrollado por Barb (WB2CBA).
 //*      - Utiliza una placa Arduino Nano operando a clock nominal de 16 MHz (tal como lo hace la modificación 
 //*        de Pablo EA2EHC de la placa original QCX).
 //*      - Utiliza la estructura principal del código QCX-SSB de Guido (PE1NNZ), pero se han eliminado las
@@ -77,6 +83,7 @@ char hi[80];
 #define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
 #define SIMPLE_RX      1
 
+//#define ADX              1   // Enable ADX algorithm for TX
 //#define QDX              1   // Enable QDX algorithm for TX
 //#define CW_DECODER       1   // Decodificador CW
 //#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
@@ -86,7 +93,7 @@ char hi[80];
 //#define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
 
 
-#else
+#else  // This is the standard configuration for EA2EHC
 
 //#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
 //#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
@@ -716,6 +723,11 @@ public:
       ms(MS2,  fvcoa, fout, PLLA, 0, 0, rdiv);
       if(iqmsa != ((i-q)*((uint16_t)(fvcoa/fout))/90)){ iqmsa = (i-q)*((uint16_t)(fvcoa/fout))/90; reset(); }
 
+/*------------------------------------------------------*
+ * Pixino requires the CLK2 output to be enabled at     *
+ * all times to feed the direct conversion receiver     *
+ * the other two outpus (CLK0 and CLK1) are not used    *
+ *------------------------------------------------------*/
 #ifdef PIXINO
       oe(0b00000100);  // output enable CLK0, CLK1
 #else      
@@ -3148,11 +3160,13 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
     case RIT:     paramAction(action, rit, 0x17, F("RIT"), offon_label, 0, 1, false); break;    
 #endif
 
+#ifndef PIXINO
 #ifdef FAST_AGC
     case AGC:     paramAction(action, agc, 0x18, F("AGC"), agc_label, 0, _N(agc_label) - 1, false); break;
 #else
     case AGC:     paramAction(action, agc, 0x18, F("AGC"), offon_label, 0, 1, false); break;
 #endif // FAST_AGC
+#endif // PIXINO
 
 #ifndef PIXINO
     case NR:      paramAction(action, nr, 0x19, F("NR"), NULL, 0, 8, false); break;
@@ -3162,6 +3176,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
     
     case SMETER:  paramAction(action, smode, 0x1C, F("S-meter"), smode_label, 0, _N(smode_label) - 1, false); break;
 
+#ifndef PIXINO
 #ifdef CW_DECODER
     case CWDEC:   paramAction(action, cwdec, 0x21, F("CW Decoder"), offon_label, 0, 1, false); break;
 #endif
@@ -3173,6 +3188,7 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 #ifdef CW_LEARN 
     case LEARN_MODE: paramAction(action, learn_mode,  0x23, F("Learn Mode"), learn_mode_label, 0, 2, false); break;
 #endif
+#endif //PIXINO
 
 #ifdef SEMI_QSK
     case SEMIQSK: paramAction(action, semi_qsk,  0x24, F("Semi QSK"), offon_label, 0, 1, false); break;
