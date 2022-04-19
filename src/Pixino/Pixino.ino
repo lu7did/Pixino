@@ -46,7 +46,9 @@
 //*------------------------------------------------------------------------------------------------------------------
 #define PIXINO    1          // Define las modificaciones que son específicas del Pixino (inclusión/exclusión)
 
+
 #ifdef PIXINO
+#define ADX       1          // Define ADX modulation scheme, only enable within PIXINO as Rotary encoder lines are changed
 #endif //PIXINO
 
 #ifdef PIXINO
@@ -79,10 +81,11 @@ char hi[80];
  *--------------------------------*/
 #ifdef PIXINO
 
-#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
-#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
+
 #define SIMPLE_RX      1
 
+//#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
+//#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
 //#define ADX              1   // Enable ADX algorithm for TX
 //#define QDX              1   // Enable QDX algorithm for TX
 //#define CW_DECODER       1   // Decodificador CW
@@ -91,6 +94,8 @@ char hi[80];
 //#define FAST_AGC         1   // Añade la opcion de control automatico de ganancia rapido, epecial para CW
 //#define CW_MESSAGE_EXT   1   // Mensajes adicionales CW para QSO en automatico
 //#define CW_FREQS_QRP     1   // Frecuencia por defecto CW QRP cuando cambiamos de banda
+//#define ENCODER_ENHANCED_RESOLUTION  1
+
 
 
 #else  // This is the standard configuration for EA2EHC
@@ -142,10 +147,17 @@ char hi[80];
 #define LCD_D7   3         //PD3    (pin 5)
 #define LCD_EN   4         //PD4    (pin 6)
 #define LCD_RS  18         //PC4    (pin 27)
-#define FREQCNT  5         //PD5    (pin 11)
-#define ROT_A    6         //PD6    (pin 12)
-#define ROT_B    7         //PD7    (pin 13)
-#define RX       8         //PB0    (pin 14)
+
+#ifndef PIXINO
+  #define FREQCNT  5         //PD5    (pin 11)
+  #define ROT_A    6         //PD6    (pin 12)
+  #define ROT_B    7         //PD7    (pin 13)
+  #define RX       8         //PB0    (pin 14)
+#else
+  #define ROT_A    5         //PD5
+  #define ROT_B    8         //PB0
+#endif //PIXINO PD5 (D5) is freed as an alternate Rotary encoder pin, PD6-PD7 are freed to be used as AIN0 and AIN1 for the ADX modulation scheme
+
 #define SIDETONE 9         //PB1    (pin 15)
 #define KEY_OUT 10         //PB2    (pin 16)
 #define SIG_OUT 11         //PB3    (pin 17)
@@ -167,9 +179,16 @@ char hi[80];
 #ifdef SWAP_ROTARY
 #undef  ROT_A
 #undef  ROT_B
-#define ROT_A   7         //PD7    (pin 13)
-#define ROT_B   6         //PD6    (pin 12)
-#endif
+
+#ifndef ADX
+#define ROT_A   8         //PD7    (pin 13)
+#define ROT_B   5         //PD6    (pin 12)
+#else
+#define ROT_A   8
+#define ROT_B   5
+#endif //ADX
+
+#endif  //SWAP_ROTARY
 
 #if defined(CAT)
 #define _SERIAL  1       // Coexistence support for serial port and LCD on the same pins
@@ -225,8 +244,9 @@ uint8_t _digitalRead(uint8_t pin){  // reads pin or (via CAT) artificially overr
   return digitalRead(pin);
 }
 #else
-#define _digitalRead(x) digitalRead(x)
+  #define _digitalRead(x) digitalRead(x)
 #endif //CAT_EXT
+
 
 /*-------------------------------------------*
  *           KEYER Subsystem                 *
@@ -426,10 +446,9 @@ volatile int8_t encoder_val = 0;
 volatile int8_t encoder_step = 0;
 static uint8_t last_state;
 
-ISR(PCINT2_vect){  // Interrupt on rotary encoder turn
+void handle_encoder_change() {
   switch(last_state = (last_state << 4) | (_digitalRead(ROT_B) << 1) | _digitalRead(ROT_A)){ //transition  (see: https://www.allaboutcircuits.com/projects/how-to-use-a-rotary-encoder-in-a-mcu-based-project/  )
 
-//#define ENCODER_ENHANCED_RESOLUTION  1
 #ifdef ENCODER_ENHANCED_RESOLUTION // Option: enhance encoder from 24 to 96 steps/revolution, see: appendix 1, https://www.sdr-kits.net/documents/PA0KLT_Manual.pdf
     case 0x31: case 0x10: case 0x02: case 0x23: encoder_val++; break;
     case 0x32: case 0x20: case 0x01: case 0x13: encoder_val--; break;
@@ -438,14 +457,38 @@ ISR(PCINT2_vect){  // Interrupt on rotary encoder turn
     case 0x32:  encoder_val--; break;
 #endif
   }
+  
+}
+ISR(PCINT2_vect){  // Interrupt on rotary encoder turn
+  handle_encoder_change();  
+}
+ISR(PCINT0_vect){  // Interrupt on rotary encoder turn
+  handle_encoder_change();  
+}
+
+void pciSetup(byte pin)
+{
+    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // activar pin en PCMSK
+    PCIFR  |= bit (digitalPinToPCICRbit(pin)); // limpiar flag de la interrupcion en PCIFR
+    PCICR  |= bit (digitalPinToPCICRbit(pin)); // activar interrupcion para el grupo en PCICR
 }
 
 void encoder_setup()
 {
   pinMode(ROT_A, INPUT_PULLUP);
   pinMode(ROT_B, INPUT_PULLUP);
+
+#ifdef ADX
+   pciSetup(ROT_A);
+   pciSetup(ROT_B);  
+  //PCMSK2 |= (1 << PCINT21) | (1 << PCINT23); // interrupt-enable for ROT_A, ROT_B pin changes; see https://github.com/EnviroDIY/Arduino-SDI-12/wiki/2b.-Overview-of-Interrupts
+#else
   PCMSK2 |= (1 << PCINT22) | (1 << PCINT23); // interrupt-enable for ROT_A, ROT_B pin changes; see https://github.com/EnviroDIY/Arduino-SDI-12/wiki/2b.-Overview-of-Interrupts
-  PCICR |= (1 << PCIE2); 
+  PCICR  |= (1 << PCIE2); 
+#endif //ADX  
+
+
+
   last_state = (_digitalRead(ROT_B) << 1) | _digitalRead(ROT_A);
   interrupts();
 }
@@ -877,72 +920,6 @@ volatile uint8_t vox_thresh = (1 << 0); //(1 << 2);
 volatile uint8_t drive = 2;   // hmm.. drive>2 impacts cpu load..why?
 volatile uint8_t quad = 0;
 
-#ifdef QDX  
-
-#define QDX_AVERAGE 12
-int16_t qdx_prev=0;
-bool    qdx_first=true;
-float   qdx_t1=0.0;
-float   qdx_t2=0.0;
-float   qdx_S=0.0;
-float   qdx_sampling=F_SAMP_TX*1.0;
-int16_t qdx_n=0;
-int16_t qdx_m=0;
-int16_t qdx_mmax=QDX_AVERAGE;
-
-/*-------------------------------------------*
- *         QDX Algorithm                     *
- *-------------------------------------------*/
-inline int16_t qdx(int16_t in)
-{
-/*---------------------------------------------*
- * on first decode keep cycling till a positive*
- * input value is found (cross + to -          *
- *---------------------------------------------*/
-  if (qdx_first && in < 0) {
-     return -1;
-  } else {
-    qdx_first=false;
-    qdx_prev=in;
-    qdx_t1=0.0;
-    return -1;
-  }
-/*--- another sample ---*/
-  qdx_n++;
-
-/*--- + to - crossing ---*/  
-  if (qdx_prev > 0 && in < 0) {
-    
-  } else {
-    qdx_prev=in;
-    return -1;
-  }
-  
-/*--- compute tail t2 and snap frequency ---*/
-  qdx_t2=qdx_prev/(qdx_prev+in);
-  float f=qdx_sampling/(qdx_t1+qdx_t2+(qdx_n*1.0));
-
-/*--- average several samples ---*/  
-  qdx_S=qdx_S+f;
-  qdx_m--;
-
-/*--- compute front tail t1 ---*/  
-  qdx_t1=in/(in+qdx_prev);
-  qdx_prev=in;
-  qdx_n=0;
-
-/*--- already collected average window ---*/  
-  if (qdx_m==0) {
-     f=qdx_S/qdx_mmax;      
-     qdx_m=qdx_mmax;
-     qdx_S=0.0;
-     return int(f);
-  }
-/*---  not yet, continue ---*/  
-  return -1;
-  
-}
-#endif //QDX -- PIXINO
 /*-------------------------------------------*
  *       SSB Generation                      *
  *-------------------------------------------*/
@@ -1072,16 +1049,6 @@ void dsp_tx()
 
   _adc = (adc/4 - (512 - AF_BIAS));        // now make sure that we keep a postive bias offset (to prevent the phase swapping 180 degrees and potentially causing negative feedback (RFI)
 
-/*
-#ifdef DEBUG
-  cdown--;
-  if (cdown == 0) {
-     sprintf(hi,"MULTI_ADC Sample=%d ADC=%d adc=%d df=%d\n",cdown,ADC,adc,df);
-     Serial.print(hi);
-     cdown=1024;
-  }
-#endif //DEBUG  
-*/
 
 #else  // SSB with single ADC conversion:
 
@@ -2441,14 +2408,31 @@ uint16_t analogSampleMic()
   noInterrupts();
   ADCSRA = (1 << ADEN) | ((uint8_t)log2((uint8_t)(F_CPU / 13 / (192307/1)))) & 0x07;  // hack: faster conversion rate necessary for VOX
 
-  if((dsp_cap == SDR) && (vox_thresh >= 32)) digitalWrite(RX, LOW);  // disable RF input, only for SDR mod and with low VOX threshold
+  if((dsp_cap == SDR) && (vox_thresh >= 32)) {
+
+#ifndef PIXINO
+#ifndef ADX
+    digitalWrite(RX, LOW);   // disable RF input, only for SDR mod and with low VOX threshold
+#endif //ADX Release the usage of the RX(PB0-D8) line as an alternate decoder input when in ADX mode
+#endif //PIXINO
+
+  }
   uint8_t oldmux = ADMUX;
   for(;!(ADCSRA & (1 << ADIF)););  // wait until (a potential previous) ADC conversion is completed
   ADMUX = admux[2];  // set MUX for next conversion
   ADCSRA |= (1 << ADSC);    // start next ADC conversion
   for(;!(ADCSRA & (1 << ADIF)););  // wait until ADC conversion is completed
   ADMUX = oldmux;
-  if((dsp_cap == SDR) && (vox_thresh >= 32)) digitalWrite(RX, HIGH);  // enable RF input, only for SDR mod and with low VOX threshold
+
+  if((dsp_cap == SDR) && (vox_thresh >= 32)) {
+
+#ifndef PIXINO
+#ifndef ADX
+    digitalWrite(RX, HIGH);  // enable RF input, only for SDR mod and with low VOX threshold
+#endif //ADX Release the usage of the RX(PB0-D8) line as alternate decoder input when in ADX mode
+#endif
+
+  }
   adc = ADC;
   interrupts();
   return adc;
@@ -2607,7 +2591,10 @@ void switch_rxtx(uint8_t tx_enable){
 #endif
 
     if((txdelay) && (tx_enable) && (!(tx)) && (!(practice))){  // key-up TX relay in advance before actual transmission
+
+#ifndef ADX
       digitalWrite(RX, LOW); // TX (disable RX)
+#endif //ADX Release the usage of the RX (PB0-D8) line as an alternate encoder input
 
 #ifdef PIXINO
       digitalWrite(SIG_OUT,HIGH);
@@ -2710,13 +2697,21 @@ void switch_rxtx(uint8_t tx_enable){
   
   if(tx_enable){ // tx
     if(practice){
+
+#ifndef PIXINO
       digitalWrite(RX, LOW); // TX (disable RX)
+#endif //PIXINO
+
       lcd.setCursor(15, 1); lcd.print('P');
       si5351.SendRegister(SI_CLK_OE, 0b11111111); // CLK2_EN,CLK1_EN,CLK0_EN=0
       // Do not enable PWM (KEY_OUT), do not enble CLK2
     } else
     {
+
+#ifndef PIXINO
       digitalWrite(RX, LOW); // TX (disable RX)
+#endif //PIXINO
+
 #ifdef PIXINO
       digitalWrite(SIG_OUT,HIGH);
 #endif //PIXINO      
@@ -2795,7 +2790,10 @@ void switch_rxtx(uint8_t tx_enable){
       if((!semi_qsk_timeout) || (!semi_qsk))   // enable RX when no longer in semi-qsk phase; so RX and NTX/PTX outputs are switching only when in RX mode
 #endif //SEMI_QSK
       {
+#ifndef PIXINO
         digitalWrite(RX, !(att == 2)); // RX (enable RX when attenuator not on)
+#endif PIXINO
+
 #ifdef PIXINO
         digitalWrite(SIG_OUT,LOW);
 #endif //PIXINO                
@@ -2898,16 +2896,21 @@ void powerDown()
   PCMSK0 = 0;
   PCMSK1 = 0;
   PCMSK2 = 0;
+  
   // Disable internal interrupts
   TIMSK0 = 0;
   TIMSK1 = 0;
   TIMSK2 = 0;
   WDTCSR = 0;
 
+#ifndef PIXINO
+
   // Enable BUTTON Pin Change interrupt
   *digitalPinToPCMSK(BUTTONS) |= (1<<digitalPinToPCMSKbit(BUTTONS));
   *digitalPinToPCICR(BUTTONS) |= (1<<digitalPinToPCICRbit(BUTTONS));
 
+#endif //PIXINO
+  
   // Power-down sub-systems
   PRR = 0xff;
   lcd.noDisplay();
@@ -3264,19 +3267,33 @@ int8_t paramAction(uint8_t action, uint8_t id = ALL)  // list of parameters
 void initPins(){
  
   digitalWrite(SIG_OUT, LOW);
+
+#ifndef PIXINO
+#ifndef ADX
   digitalWrite(RX, HIGH);
+  pinMode(RX, OUTPUT);
+#endif //ADX
+#endif //PIXINO
+
   digitalWrite(KEY_OUT, LOW);
   digitalWrite(SIDETONE, LOW);
   pinMode(SIDETONE, OUTPUT);
   pinMode(SIG_OUT, OUTPUT);
-  pinMode(RX, OUTPUT);
   pinMode(KEY_OUT, OUTPUT);
-  pinMode(BUTTONS, INPUT);  // L/R/rotary button
 
+#ifndef PIXINO
+  pinMode(BUTTONS, INPUT);  // L/R/rotary button
+#else  
+  pinMode(BUTTONS, INPUT_PULLUP);
+#endif
   
   pinMode(DIT, INPUT_PULLUP);
-  //PEC pinMode(DAH, INPUT);  // pull-up DAH 10k via AVCC
+
+#ifndef PIXINO
+  pinMode(DAH, INPUT);  // pull-up DAH 10k via AVCC
+#else
   pinMode(DAH, INPUT_PULLUP); //PEC Could this replace D4? But leaks noisy VCC into mic input!
+#endif //PIXINO
 
   digitalWrite(AUDIO1, LOW);  // when used as output, help can mute RX leakage into AREF
   digitalWrite(AUDIO2, LOW);
@@ -3768,8 +3785,13 @@ void setup()
 
   uint8_t mcusr = MCUSR;
   MCUSR = 0;
-  //PEC wdt_enable(WDTO_4S);  // Enable watchdog
+
+#ifndef PIXINO  
+  wdt_enable(WDTO_4S);  // Enable watchdog
+#else  
   wdt_disable();
+#endif  //PIXINO
+  
   uint32_t t0, t1;
 
   ADMUX = (1 << REFS0);  // restore reference voltage AREF (5V)
@@ -4329,8 +4351,13 @@ wdt_disable(); //PEC
 
             interrupts();
           }
-          
+
+#ifndef PIXINO
+#ifndef ADX          
           digitalWrite(RX, !(att & 0x02)); // att bit 1 ON: attenuate -20dB by disabling RX line, switching Q5 (antenna input switch) into 100k resistence
+#endif //ADX
+#endif //PIXINO
+
           pinMode(AUDIO1, (att & 0x04) ? OUTPUT : INPUT); // att bit 2 ON: attenuate -40dB by terminating ADC inputs with 10R
           pinMode(AUDIO2, (att & 0x04) ? OUTPUT : INPUT);
         }
