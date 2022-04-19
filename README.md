@@ -15,7 +15,7 @@ Raspberry Pi Z PixiePi project
 
 Initial project setup for HF Arduino controlled Pixie transceiver:
 
-- Operate CW-USB
+- Operate digital modes with no amplitude information CW and USB (PSK modes).
 - LCD 16x2 + encoder based control
 - Dual VFO (A/B) for split mode
 - VOX & PTT control
@@ -180,10 +180,7 @@ Also some reports were gathered from the PSK Reporter site [link](http://pskrepo
 
 # Work in progress
 
-## Features
-
-- Finalize basic operation with QCX-SSB firmware classic SSB mode.
-- Incorporate QDX algorithm to generate digital modes.
+- Incorporate QDX-like algorithm to generate digital modes as prototyped by Barb (WB2CBA) [project](https://github.com/WB2CBA/ADX).
 - Prototype wiring for stand-alone +12V operation (internal +5V regulator).
 - Add receiver functions to measure signal strength (wire SPKR to A0, polarization, enable Simple_RX, etc.)
 - Customize useful functions in and non-useful functions on QCX-SSB firmware out.
@@ -193,6 +190,4 @@ Also some reports were gathered from the PSK Reporter site [link](http://pskrepo
 - Box.
 - PCB.
 - Add memory meassuring function.
-
-## Issues
 
