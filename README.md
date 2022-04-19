@@ -48,6 +48,13 @@ an Arduino Nano board controlling a Si5351 board to provide the signal generatio
 
 Instead of a crystal based signal generation DDS is be used. The rest of the code deals mostly with the user interface and operating features, among others:
 
+From the firmware standpoint this  project has been largely inspired by the work from [Guido (PE1NNZ)](http://pe1nnz.nl.eu.org) and in particular
+by the [QCX-SSB](https://github.com/threeme3/QCX-SSB) project and the entire echosystem around it, the version used as the starting point were
+the one made by Pablo (EA2EHC).
+
+Also my own work with the projects [PixiePi](http://www.github.com/lu7did/PixiePi) and [OrangeThunder](http://www.github.com/lu7did/OrangeThunder) had
+been largely used to extract code and ideas for this project.
+
 ## Hardware prototype
 
 This is a snapshot of the current prototype used to develop and debug this project:
@@ -170,14 +177,6 @@ A maiden QSO was made
 ![Alt Text](images/MaidenQSO2.jpg?raw=true "Maiden QSO")
 Also some reports were gathered from the PSK Reporter site [link](http://pskreporter.info) which can be seen
 ![Alt Text](images/OTA.jpg?raw=true "On-The-Air test")
-
-# Background
-
-This project has been largely inspired by the work from [Guido (PE1NNZ)](http://pe1nnz.nl.eu.org) and in particular
-by the [QCX-SSB](https://github.com/threeme3/QCX-SSB) project and the entire echosystem around it.
-
-Also my own work with the projects [PixiePi](http://www.github.com/lu7did/PixiePi) and [OrangeThunder](http://www.github.com/lu7did/OrangeThunder) had
-been largely used to extract code for this project.
 
 # Work in progress
 
