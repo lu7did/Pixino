@@ -1,6 +1,5 @@
 ## Ham radio Pixie Transceiver controlled by an Ardunio Nano board
 
-
 The Pixino board is a ham radio experimental transceiver which is 
 specialized on digital modes and inspired on the algorithms
 created by Summers (G0UPL) but with a more primitive implementation for
@@ -30,6 +29,7 @@ Initial project setup for HF Arduino controlled Pixie transceiver:
 - Taping on ideas and work from WB2CBA ADX concepts and ideas [here] (//https://github.com/WB2CBA/ADX)
 - Algorithms for frequency detection from Burkhard Kainka(DK7JD) [here] (http://elektronik-labor.de/HF/SDRtxFSK2.html)
 - Operates with both the standard QCX-SSB and QDX algorithm as described by Hans [here] (https://www.qrp-labs.com/images/qdx/manual_operation_1_03.pdf)
+
 
 # Background
 
@@ -160,6 +160,16 @@ I declare this project has been performed on my own time and equipment.
 This project must not be seen as a replacement for other fine kits such as the QCX, D4D, QRPGuys and similar; after all it's based on
 just a USD 4.- Pixie board, so it can be compared and used with other similar boards as well as long as the Xtal can be replaced by a
 DDS.
+
+#On the Air Tests
+
+No true ham project is finished until some on-the-air tests are performed, and this project isn't an exception.
+Although the firmware allow several modes to be explored such as CW, PSK and Weak Signal modes (any mode that doesn't require amplitude modulation or
+linear behaviour) the FT8 mode is particularly suitable for this project.
+A maiden QSO was made 
+![Alt Text](images/MaidenQSO2.jpg?raw=true "Maiden QSO")
+Also some reports were gathered from the PSK Reporter site [link](http://pskreporter.info) which can be seen
+![Alt Text](images/OTA.jpg?raw=true "On-The-Air test")
 
 # Background
 
