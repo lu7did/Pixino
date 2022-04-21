@@ -48,7 +48,7 @@
 
 
 #ifdef PIXINO
-#define ADX       1          // Define ADX modulation scheme, only enable within PIXINO as Rotary encoder lines are changed
+#define DEBUG 1
 #endif //PIXINO
 
 #ifdef PIXINO
@@ -86,8 +86,6 @@ char hi[80];
 
 //#define CAT            1   // Interface CAT, usar emulacion del Kenwood TS-480
 //#define CAT_EXT        1   // Soporte CAT extendido: remote button and screen control commands over CAT
-//#define ADX              1   // Enable ADX algorithm for TX
-//#define QDX              1   // Enable QDX algorithm for TX
 //#define CW_DECODER       1   // Decodificador CW
 //#define FILTER_700HZ     1   // Activa la opcion de 600Hz / 700Hz
 //#define MOX_ENABLE       1   // Monitoriza a traves del altavoz la señal de audio durante la transmision
@@ -177,16 +175,17 @@ char hi[80];
 //#define PTX   11        //PB3    (pin 17)  - experimental: HIGH on TX, used as PTT out to enable external PAs
 
 #ifdef SWAP_ROTARY
+
 #undef  ROT_A
 #undef  ROT_B
 
-#ifndef ADX
+#ifdef PIXINO
 #define ROT_A   8         //PD7    (pin 13)
 #define ROT_B   5         //PD6    (pin 12)
 #else
-#define ROT_A   8
-#define ROT_B   5
-#endif //ADX
+#define ROT_A   7
+#define ROT_B   6
+#endif //PIXINO
 
 #endif  //SWAP_ROTARY
 
@@ -478,14 +477,13 @@ void encoder_setup()
   pinMode(ROT_A, INPUT_PULLUP);
   pinMode(ROT_B, INPUT_PULLUP);
 
-#ifdef ADX
+#ifdef PIXINO
    pciSetup(ROT_A);
    pciSetup(ROT_B);  
-  //PCMSK2 |= (1 << PCINT21) | (1 << PCINT23); // interrupt-enable for ROT_A, ROT_B pin changes; see https://github.com/EnviroDIY/Arduino-SDI-12/wiki/2b.-Overview-of-Interrupts
 #else
   PCMSK2 |= (1 << PCINT22) | (1 << PCINT23); // interrupt-enable for ROT_A, ROT_B pin changes; see https://github.com/EnviroDIY/Arduino-SDI-12/wiki/2b.-Overview-of-Interrupts
   PCICR  |= (1 << PCIE2); 
-#endif //ADX  
+#endif //PIXINO  
 
 
 
@@ -2411,9 +2409,7 @@ uint16_t analogSampleMic()
   if((dsp_cap == SDR) && (vox_thresh >= 32)) {
 
 #ifndef PIXINO
-#ifndef ADX
     digitalWrite(RX, LOW);   // disable RF input, only for SDR mod and with low VOX threshold
-#endif //ADX Release the usage of the RX(PB0-D8) line as an alternate decoder input when in ADX mode
 #endif //PIXINO
 
   }
@@ -2427,10 +2423,8 @@ uint16_t analogSampleMic()
   if((dsp_cap == SDR) && (vox_thresh >= 32)) {
 
 #ifndef PIXINO
-#ifndef ADX
     digitalWrite(RX, HIGH);  // enable RF input, only for SDR mod and with low VOX threshold
-#endif //ADX Release the usage of the RX(PB0-D8) line as alternate decoder input when in ADX mode
-#endif
+#endif //PIXINO
 
   }
   adc = ADC;
@@ -2592,11 +2586,8 @@ void switch_rxtx(uint8_t tx_enable){
 
     if((txdelay) && (tx_enable) && (!(tx)) && (!(practice))){  // key-up TX relay in advance before actual transmission
 
-#ifndef ADX
+#ifndef PIXINO
       digitalWrite(RX, LOW); // TX (disable RX)
-#endif //ADX Release the usage of the RX (PB0-D8) line as an alternate encoder input
-
-#ifdef PIXINO
       digitalWrite(SIG_OUT,HIGH);
 #endif //PIXINO
 
@@ -3269,10 +3260,8 @@ void initPins(){
   digitalWrite(SIG_OUT, LOW);
 
 #ifndef PIXINO
-#ifndef ADX
   digitalWrite(RX, HIGH);
   pinMode(RX, OUTPUT);
-#endif //ADX
 #endif //PIXINO
 
   digitalWrite(KEY_OUT, LOW);
@@ -3908,7 +3897,9 @@ static int32_t icount=0;
 void loop()
 {
 
-wdt_disable(); //PEC
+#ifdef PIXINO
+wdt_disable(); //No wdt is necessary for PIXINO
+#endif
 
 #ifdef VOX_ENABLE
   if((vox) && ((mode == LSB) || (mode == USB))){  // If VOX enabled (and in LSB/USB mode), then take mic samples and feed ssb processing function, to derive amplitude, and potentially detect cross vox_threshold to detect a TX or RX event: this is expressed in tx variable
@@ -3930,18 +3921,11 @@ wdt_disable(); //PEC
       if(tx){  // TX triggered by audio -> TX
         vox_tx = 1;
         switch_rxtx(255);
-        //for(;(tx);) wdt_reset();  // while in tx (workaround for RFI feedback related issue)
-        //delay(100); tx = 255;
-        Serial.print("VOX enabled\n");
       }
     } else if(!tx){  // VOX activated, no audio detected -> RX
       switch_rxtx(0);
       vox_tx = 0;
       delay(32); //delay(10);
-      Serial.print("VOX disabled\n");
-      //vox_adc = 0; for(i = 0; i != 32; i++) ssb(0); //clean buffers
-      //for(int i = 0; i != 32; i++) ssb((analogSampleMic() - 512) >> MIC_ATTEN); // clear internal buffer
-      //tx = 0; // make sure tx is off (could have been triggered by rubbish in above statement)
     }
   }
 #endif //VOX_ENABLE
@@ -3953,6 +3937,7 @@ wdt_disable(); //PEC
   if(menumode == 0){ // in main
 
 #ifdef CW_DECODER
+
     if(cw_event){
       uint8_t offset = (uint8_t[]){ 0, 7, 3, 5, 3, 7, 8 }[smode]; // depending on smeter more/less cw-text
       lcd.noCursor();
@@ -4074,7 +4059,16 @@ wdt_disable(); //PEC
   enum event_t { BL=0x10, BR=0x20, BE=0x30, SC=0x01, DC=0x02, PL=0x04, PLC=0x05, PT=0x0C }; // button-left, button-right and button-encoder; single-click, double-click, push-long, push-and-turn
   if(_digitalRead(BUTTONS)){   // Left-/Right-/Rotary-button (while not already pressed)
     if(!((event & PL) || (event & PLC))){  // hack: if there was long-push before, then fast forward
+
+#ifdef DEBUG      
+      sprintf(hi,"antes de analog\n");
+      Serial.print(hi);
+#endif //DEBUG      
       uint16_t v = analogSafeRead(BUTTONS);
+#ifdef DEBUG      
+      sprintf(hi,"salio analog (%d)",v);
+      Serial.print(hi);
+#endif //DEBUG      
 
 #ifdef CAT_EXT
       if(cat_key){ v = (cat_key&0x04) ? 512 : (cat_key&0x01) ? 870 : (cat_key&0x02) ? 1024 : 0; }  // override analog value exercised by BUTTONS press
@@ -4353,9 +4347,7 @@ wdt_disable(); //PEC
           }
 
 #ifndef PIXINO
-#ifndef ADX          
           digitalWrite(RX, !(att & 0x02)); // att bit 1 ON: attenuate -20dB by disabling RX line, switching Q5 (antenna input switch) into 100k resistence
-#endif //ADX
 #endif //PIXINO
 
           pinMode(AUDIO1, (att & 0x04) ? OUTPUT : INPUT); // att bit 2 ON: attenuate -40dB by terminating ADC inputs with 10R
