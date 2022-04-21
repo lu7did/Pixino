@@ -48,7 +48,7 @@
 
 
 #ifdef PIXINO
-#define DEBUG 1
+//#define DEBUG 1
 #endif //PIXINO
 
 #ifdef PIXINO
@@ -2378,8 +2378,11 @@ const byte fonts[N_FONTS][8] PROGMEM = {
 int analogSafeRead(uint8_t pin, bool ref1v1 = false)
 {  // performs classical analogRead with default Arduino sample-rate and analog reference setting; restores previous settings
 
+#ifndef PIXINO
+  
   noInterrupts();
   for(;!(ADCSRA & (1 << ADIF)););  // wait until (a potential previous) ADC conversion is completed
+ 
   uint8_t adcsra = ADCSRA;
   uint8_t admux = ADMUX;
   ADCSRA &= ~(1 << ADIE);  // disable interrupts when measurement complete
@@ -2388,10 +2391,17 @@ int analogSafeRead(uint8_t pin, bool ref1v1 = false)
   if(ref1v1) ADMUX &= ~(1 << REFS0);  // restore reference voltage AREF (1V1)
   else ADMUX = (1 << REFS0);  // restore reference voltage AREF (5V)
   delay(1);  // settle
+
+#endif //PIXINO By-pass and read analog as a standard read
+  
   int val = analogRead(pin);
+
+#ifndef PIXINO
   ADCSRA = adcsra;
   ADMUX = admux;
   interrupts();
+#endif //PIXINO
+  
   return val;
 }
 
@@ -3860,7 +3870,7 @@ void setup()
 #ifdef DEBUG
 #define BAUD 38400
   Serial.begin(16000000ULL * BAUD / F_MCU); // corrected for F_CPU=20M
-  sprintf(hi,"\n\nPixino (c) LU7DZ\nDebug stream\n");
+  sprintf(hi,"\n\nPixino (c) LU7DZ\nVersion(%d)\n",VERSION);
   Serial.print(hi);
 #endif
 
@@ -4060,14 +4070,11 @@ wdt_disable(); //No wdt is necessary for PIXINO
   if(_digitalRead(BUTTONS)){   // Left-/Right-/Rotary-button (while not already pressed)
     if(!((event & PL) || (event & PLC))){  // hack: if there was long-push before, then fast forward
 
-#ifdef DEBUG      
-      sprintf(hi,"antes de analog\n");
-      Serial.print(hi);
-#endif //DEBUG      
       uint16_t v = analogSafeRead(BUTTONS);
+
 #ifdef DEBUG      
-      sprintf(hi,"salio analog (%d)",v);
-      Serial.print(hi);
+      sprintf(hi,"analogSafeRead(%d-%02X)",v,v);
+      Serial.println(hi);
 #endif //DEBUG      
 
 #ifdef CAT_EXT
@@ -4081,15 +4088,27 @@ wdt_disable(); //No wdt is necessary for PIXINO
         wdt_reset();
       }
 
+      
       delay(10); //debounce
       for(; (event != PL) && ((millis() - t0) < 500);){ // until 2nd press or timeout
         if(_digitalRead(BUTTONS)){ event = DC; break; }
         wdt_reset();
       }
+
+#ifdef DEBUG
+      sprintf(hi,"Release buttons event(%02X)",event);
+      Serial.println(hi);
+#endif //DEBUG
+
       for(; _digitalRead(BUTTONS);){ // until released, or encoder is turned while longpress
         if(encoder_val && event == PL){ event = PT; break; }
         wdt_reset();
       }  // Max. voltages at ADC3 for buttons L,R,E: 3.76V;4.55V;5V, thresholds are in center
+
+#ifdef DEBUG
+      sprintf(hi,"Release buttons event II(%02X)",event);
+      Serial.println(hi);
+#endif //DEBUG
 
 #ifdef PIXINO
 /*
@@ -4104,6 +4123,11 @@ wdt_disable(); //No wdt is necessary for PIXINO
 #else      
       event |= (v < (4.2 * 1024.0 / 5.0)) ? BL : (v < (4.8 * 1024.0 / 5.0)) ? BR : BE; // determine which button pressed based on threshold levels
 #endif //PIXINO
+
+#ifdef DEBUG
+      sprintf(hi,"After assign Event(%02X)",event);
+      Serial.println(hi);
+#endif //DEBUG
       
     } else {  // hack: fast forward handling
       event = (event&0xf0) | ((encoder_val) ? PT : PLC/*PL*/);  // only alternate between push-long/turn when applicable
