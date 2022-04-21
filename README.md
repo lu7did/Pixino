@@ -191,9 +191,7 @@ Also some reports were gathered from the PSK Reporter site [link](http://pskrepo
 
 # Work in progress
 
-- Dual circuit for input
-- BUTTONS hangs the application.
-- Incorporate ADX/QDX-like algorithm to generate digital modes as prototyped by Barb (WB2CBA) [project](https://github.com/WB2CBA/ADX).
+- Add secondary connection and ADX MIC filter
 - Prototype wiring for stand-alone +12V operation (internal +5V regulator).
 - Add receiver functions to measure signal strength (wire SPKR to A0, polarization, enable Simple_RX, etc.)
 - Add transmitter function to show audio level at the S-Meter
