@@ -4283,6 +4283,7 @@ wdt_disable(); //No wdt is necessary for PIXINO
         }
         break;
 
+#ifndef PIXINO
       case BE|DC:
         //delay(100);
         bandval++;
@@ -4291,6 +4292,7 @@ wdt_disable(); //No wdt is necessary for PIXINO
         stepsize = STEP_1k;
         change = true;
         break;
+#endif //PIXINO Do not allow band changes, the firmware is for a single band
 
       case BE|PL: stepsize_change(-1); break;
 
@@ -4335,9 +4337,13 @@ wdt_disable(); //No wdt is necessary for PIXINO
           if(mode != CW) stepsize = STEP_1k; else stepsize = STEP_500;
           if(mode == CW) { filt = 4; nr = 0; } else filt = 0;
         }
+
+#ifndef PIXINO        
         if(menu == BAND){
           change = true;
         }
+#endif //PIXINO Do not allow for a band change
+        
         //if(menu == NR){ if(mode == CW) nr = false; }
         if(menu == VFOSEL){
           freq = vfo[vfosel%2];
@@ -4422,7 +4428,11 @@ wdt_disable(); //No wdt is necessary for PIXINO
 
   if((change) && (!tx) && (!vox_tx)){  // only change if TX is OFF, prevent simultaneous I2C bus access
     change = false;
+
+#ifndef PIXINO    
     if(prev_bandval != bandval){ freq = band[bandval]; prev_bandval = bandval; }
+#endif //PIXINO Do not allow band changes
+    
     vfo[vfosel%2] = freq;
     save_event_time = millis() + 1000;  // schedule time to save freq (no save while tuning, hence no EEPROM wear out)
  
